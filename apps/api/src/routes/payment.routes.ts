@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { authenticate, requireAdmin } from "../middleware/auth.js";
+import { parseInput } from "../middleware/validate.js";
+import { paymentCreateSchema } from "@vraunix/shared";
 
 import { sendData } from "../utils/response.js";
 import { actorFrom, routeId } from "./helpers.js";
@@ -21,7 +23,8 @@ paymentRouter.get("/", async (req, res) => {
 
 paymentRouter.post("/", async (req, res) => {
   const actor = actorFrom(req);
-  sendData(res, await recordPayment(req.body ?? {}, actor, req), 201);
+  const input = parseInput(paymentCreateSchema, req.body ?? {});
+  sendData(res, await recordPayment({ ...input, amount: Math.round(Number(input.amount) * 100) } as any, actor, req), 201);
 });
 
 paymentRouter.post("/:id/verify", async (req, res) => {
