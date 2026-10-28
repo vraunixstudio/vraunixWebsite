@@ -276,14 +276,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
                 Create Project
               </Button>
             )}
-
-            <Button
-              className="vx-button vx-button--secondary vx-button--md"
-              onClick={() => router.push(`/dashboard/invoices/new?clientId=${proposal.clientId}&proposalId=${proposal.id}`)}
-            >
-              <Icon name="receipt" size={15} />
-              Create Invoice
-            </Button>
           </div>
         </div>
 
