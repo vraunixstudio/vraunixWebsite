@@ -59,7 +59,7 @@ export default function NewInvoicePage() {
             description: item.description || "",
             quantity: item.quantity || "1",
             unitPrice: item.unitPrice || "0",
-          })),
+          })) as any,
           taxRatePercent: taxRate,
           notes: notes || undefined,
         },
