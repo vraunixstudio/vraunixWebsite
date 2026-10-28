@@ -143,7 +143,7 @@ export default function NewProposalPage() {
           </div>
 
           {/* Template Bar */}
-          <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '1.25rem 1.5rem', borderRadius: '0.875rem', border: '1px solid #e2e8f0' }}>
+          <div style={{ gridColumn: '1 / -1', background: '#ffffff', padding: '1.25rem 1.5rem', borderRadius: '0.875rem', border: '1px solid rgba(20,20,20,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.8rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--vx-color-ink)' }}>
@@ -162,7 +162,7 @@ export default function NewProposalPage() {
               <select
                 value={selectedTemplate}
                 onChange={(e) => handleTemplateSelect(e.target.value)}
-                style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '250px' }}
+                style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid rgba(20,20,20,0.2)', fontSize: '0.85rem', minWidth: '250px', background: '#ffffff' }}
               >
                 <option value="default">Studio Default Template</option>
                 {PROPOSAL_TEMPLATES.map((tmpl) => (
