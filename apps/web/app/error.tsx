@@ -41,6 +41,7 @@ export default function RouteError({
               type="button"
               className="vx-button vx-button--pill-dark"
               onClick={reset}
+              style={{ background: "#000", color: "#fff" }}
             >
               Try again
             </button>

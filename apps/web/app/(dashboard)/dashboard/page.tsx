@@ -26,6 +26,7 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import DashboardOverviewLoading from "./loading";
 
 const chartColors = [
   "#141414",
