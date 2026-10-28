@@ -28,10 +28,13 @@ export async function listPayments(options: { page?: number; limit?: number; sea
 export async function recordPayment(input: Record<string, unknown>, actor: { id: string; name: string; email: string; role: string }, req?: Request) {
   const invoice = await Invoice.findById(input.invoiceId);
   if (!invoice) throw AppError.notFound("Invoice not found");
+  const amountMinor = Math.round(Number(input.amount) * 100);
   const payment = await Payment.create({
     ...input,
+    amountMinor,
     number: await nextNumber("payment", "PAY"),
     currency: invoice.currency,
+    receivedAt: input.receivedAt ? new Date(input.receivedAt as string) : new Date(),
     verificationStatus: "pending",
   });
   await recordAudit({ actor, action: "payment.recorded", entityType: "Payment", entityId: String(payment._id), req });
