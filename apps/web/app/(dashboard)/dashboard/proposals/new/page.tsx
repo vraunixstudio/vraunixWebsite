@@ -147,7 +147,7 @@ export default function NewProposalPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.8rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--vx-color-ink)' }}>
-                  Proposal &ldquo;About&rdquo; Template:
+                  Proposal &ldquo;About&rdquo; Template
                 </span>
                 <span className="vx-badge vx-badge--success" style={{ fontSize: '0.72rem', textTransform: 'none' }}>
                   Auto-Applied
@@ -158,26 +158,17 @@ export default function NewProposalPage() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => handleTemplateSelect("default")}
-                className={`vx-button ${selectedTemplate === "default" ? "vx-button--primary" : "vx-button--secondary"} vx-button--sm`}
-                style={{ fontSize: '0.8rem' }}
+            <div style={{ marginBottom: '0.8rem' }}>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => handleTemplateSelect(e.target.value)}
+                style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: '250px' }}
               >
-                Studio Default Template
-              </button>
-              {PROPOSAL_TEMPLATES.map((tmpl) => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => handleTemplateSelect(tmpl.id)}
-                  className={`vx-button ${selectedTemplate === tmpl.id ? "vx-button--primary" : "vx-button--secondary"} vx-button--sm`}
-                  style={{ fontSize: '0.8rem' }}
-                >
-                  {tmpl.name}
-                </button>
-              ))}
+                <option value="default">Studio Default Template</option>
+                {PROPOSAL_TEMPLATES.map((tmpl) => (
+                  <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
