@@ -20,7 +20,7 @@ export default function NewInvoicePage() {
   const [projectId, setProjectId] = useState(searchParams.get("projectId") ?? "");
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [dueDate, setDueDate] = useState("");
-  const [lineItems, setLineItems] = useState([{ description: "", quantity: "1", unitPrice: "" }]);
+  const [lineItems, setLineItems] = useState<any[]>([{ description: "", quantity: "1", unitPrice: "" }]);
   const [taxRate, setTaxRate] = useState("0");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,11 +55,11 @@ export default function NewInvoicePage() {
           currency,
           issueDate: new Date().toISOString().slice(0, 10),
           dueDate,
-          lineItems: lineItems.map((item) => ({
+          lineItems: lineItems.map((item: any) => ({
             description: item.description || "",
             quantity: item.quantity || "1",
             unitPrice: item.unitPrice || "0",
-          })) as any,
+          })),
           taxRatePercent: taxRate,
           notes: notes || undefined,
         },
