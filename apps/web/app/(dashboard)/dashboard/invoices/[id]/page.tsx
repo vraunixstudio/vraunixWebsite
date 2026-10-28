@@ -41,7 +41,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   async function recordPayment(event: React.FormEvent) {
     event.preventDefault();
     await run(
-      () => api("/payments", { method: "POST", body: { invoiceId: id, amount, method, receivedAt: new Date().toISOString().slice(0, 10) } }),
+      () => api("/payments", { method: "POST", body: { invoiceId: id, amount: Number(amount).toString(), method, receivedAt: new Date().toISOString().slice(0, 10) } }),
       "Payment recorded."
     );
     setAmount("");
