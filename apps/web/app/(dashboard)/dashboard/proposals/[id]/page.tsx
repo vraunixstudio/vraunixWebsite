@@ -7,7 +7,6 @@ import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { money, date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { Modal } from "@/components/dashboard/modal";
 import { Toast } from "@/components/dashboard/feedback";
 import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
@@ -19,7 +18,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   const { data: client } = useApiResource<Client>(proposal ? `/clients/${proposal.clientId}` : null);
 
   const [busy, setBusy] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -52,19 +50,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
     <div className="dashboard-page proposal-detail-page" style={{ width: '100%' }}>
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
 
-      <Modal
-        open={showPreview}
-        title="Proposal Preview"
-        onClose={() => setShowPreview(false)}
-        wide
-      >
-        <iframe
-          src={`/api/v1/proposals/${id}/pdf`}
-          style={{ width: '100%', height: '70vh', border: 'none' }}
-          title="Proposal Preview"
-        />
-      </Modal>
-
       <div style={{ display: 'grid', gap: '2.5rem', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', width: '100%' }}>
           <div>
@@ -81,13 +66,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button
-              className="vx-button vx-button--secondary vx-button--md"
-              onClick={() => setShowPreview(true)}
-            >
-              <Icon name="eye" size={15} />
-              Preview
-            </Button>
             <Button
               className="vx-button vx-button--secondary vx-button--md"
               onClick={() => window.open(`/api/v1/proposals/${id}/pdf`, '_blank')}

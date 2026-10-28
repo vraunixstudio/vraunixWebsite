@@ -93,10 +93,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-              <Button className="vx-button vx-button--secondary vx-button--md" onClick={() => setEditing(true)}>
-                <Icon name="pen" size={15} />
-                Edit Track
-              </Button>
               <Button
                 className="vx-button vx-button--primary vx-button--md"
                 onClick={() => router.push(`/dashboard/invoices/new?clientId=${project.clientId}&projectId=${project.id}`)}

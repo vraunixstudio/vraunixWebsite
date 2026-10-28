@@ -20,13 +20,27 @@ export default function NewInvoicePage() {
   const [projectId, setProjectId] = useState(searchParams.get("projectId") ?? "");
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [dueDate, setDueDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [quantity, setQuantity] = useState("1");
-  const [unitPrice, setUnitPrice] = useState("");
+  const [lineItems, setLineItems] = useState([{ description: "", quantity: "1", unitPrice: "" }]);
   const [taxRate, setTaxRate] = useState("0");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
+
+  function addLineItem() {
+    setLineItems([...lineItems, { description: "", quantity: "1", unitPrice: "" }]);
+  }
+
+  function removeLineItem(index: number) {
+    if (lineItems.length > 1) {
+      setLineItems(lineItems.filter((_, i) => i !== index));
+    }
+  }
+
+  function updateLineItem(index: number, field: string, value: string) {
+    const updated = [...lineItems];
+    updated[index] = { ...updated[index], [field]: value };
+    setLineItems(updated);
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -41,7 +55,11 @@ export default function NewInvoicePage() {
           currency,
           issueDate: new Date().toISOString().slice(0, 10),
           dueDate,
-          lineItems: [{ description, quantity, unitPrice }],
+          lineItems: lineItems.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })),
           taxRatePercent: taxRate,
           notes: notes || undefined,
         },
@@ -102,37 +120,39 @@ export default function NewInvoicePage() {
           </label>
 
           <label className="field" style={{ gridColumn: '1 / -1' }}>
-            <span>Line Item Description *</span>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              placeholder="e.g. Phase 1 Web Application Development"
-            />
+            <span>Currency</span>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}
+            </select>
           </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', gridColumn: '1 / -1' }}>
-            <label className="field">
-              <span>Quantity</span>
-              <input value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="1" />
-            </label>
-
-            <label className="field">
-              <span>Currency</span>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                {CURRENCY_CODES.map((code) => <option key={code} value={code}>{code}</option>)}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Unit Price</span>
-              <input
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-                inputMode="decimal"
-                placeholder="0.00"
-              />
-            </label>
+          <div style={{ gridColumn: '1 / -1', display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Line Items</span>
+              <Button type="button" variant="ghost" onClick={addLineItem} className="vx-button vx-button--secondary vx-button--sm">
+                <Icon name="plus" size={14} />
+                Add Item
+              </Button>
+            </div>
+            {lineItems.map((item, index) => (
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.75rem', alignItems: 'end' }}>
+                <label className="field">
+                  <span>Description *</span>
+                  <input value={item.description} onChange={(e) => updateLineItem(index, 'description', e.target.value)} required placeholder="Item description" />
+                </label>
+                <label className="field">
+                  <span>Quantity</span>
+                  <input value={item.quantity} onChange={(e) => updateLineItem(index, 'quantity', e.target.value)} placeholder="1" />
+                </label>
+                <label className="field">
+                  <span>Unit Price</span>
+                  <input value={item.unitPrice} onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)} inputMode="decimal" placeholder="0.00" />
+                </label>
+                <Button type="button" variant="ghost" onClick={() => removeLineItem(index)} disabled={lineItems.length === 1} className="vx-button vx-button--secondary vx-button--sm" style={{ marginBottom: '0.25rem' }}>
+                  <Icon name="trash" size={14} />
+                </Button>
+              </div>
+            ))}
           </div>
 
           <label className="field">
