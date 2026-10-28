@@ -61,6 +61,7 @@ export const proposalSettingsSchema = z.object({
   validityDays: z.coerce.number().int().min(1).max(365),
   defaultTerms: optionalText(10000),
   nextSteps: optionalText(3000),
+  defaultAbout: optionalText(10000),
 });
 
 export const emailSettingsSchema = z.object({

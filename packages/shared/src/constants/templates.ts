@@ -113,3 +113,102 @@ The client is responsible for maintaining third-party accounts, renewing domains
 ### Support
 
 Post-launch support is available under a maintenance plan or as separately agreed work.`;
+
+export const DEFAULT_PROPOSAL_ABOUT_TEMPLATE = `Vraunix Studio is pleased to present this comprehensive project proposal. We partner with forward-thinking businesses to design, engineer, and deploy high-performance web applications and digital experiences that drive tangible business growth.
+
+### Objectives & Strategic Approach
+Our development process prioritizes user experience, modern frontend and backend architectures, speed, and rock-solid reliability. Every deliverable is built with clean maintainable code, SEO best practices, and responsive design across all desktop and mobile devices.
+
+### Delivery & Quality Standards
+Throughout this engagement, you will receive transparent communication, milestone-based progress reviews, and dedicated post-launch handover support.`;
+
+export interface ProposalTemplatePreset {
+  id: string;
+  name: string;
+  about: string;
+  defaultScope: string[];
+}
+
+export const PROPOSAL_TEMPLATES: ProposalTemplatePreset[] = [
+  {
+    id: "standard-web",
+    name: "Full-Stack Web Development",
+    about: `Vraunix Studio is pleased to present this proposal for the custom design and engineering of your digital platform. We build scalable, high-performance web systems tailored to your specific organizational workflows and audience needs.
+
+### Objectives & Strategic Approach
+We leverage modern web technologies (Next.js, TypeScript, secure REST/GraphQL APIs, and cloud infrastructure) to produce a fluid, responsive user experience backed by scalable data architecture.
+
+### Delivery & Quality Standards
+Our team adheres to strict development standards including component modularity, SEO optimization, accessibility standards, and end-to-end quality assurance before launch.`,
+    defaultScope: [
+      "Discovery, System Architecture & Technical Specifications",
+      "Custom Responsive UI/UX Design System (Figma)",
+      "Frontend Engineering with Next.js & TypeScript",
+      "Backend API & Database Architecture",
+      "User Authentication, Role Permissions & Security Hardening",
+      "Automated Testing, Cross-Browser & Mobile QA",
+      "Production Deployment & Domain/SSL Setup",
+      "Documentation, Admin Training & 30-Day Launch Warranty",
+    ],
+  },
+  {
+    id: "redesign",
+    name: "Website Redesign & Brand Strategy",
+    about: `This proposal outlines our strategic approach to modernizing your digital brand presence. Vraunix Studio will completely overhaul your visual identity and web architecture to elevate conversion rates, performance, and user retention.
+
+### Strategic Redesign Focus
+We identify friction points in your existing digital footprint and reconstruct your customer journey from the ground up, marrying brand aesthetics with measurable business goals.
+
+### Performance & Modernization
+Your new platform will achieve superior Lighthouse performance scores, instant page transitions, and structured technical SEO that expands your organic reach.`,
+    defaultScope: [
+      "Brand Identity & Visual Style Guide Refresh",
+      "User Journey Mapping & Information Architecture",
+      "High-Fidelity Wireframes & Interactive Prototypes",
+      "Responsive Web Redesign (Mobile, Tablet, Desktop)",
+      "Core Web Vitals & Page Speed Optimization",
+      "Content Migration & Technical SEO Preservation",
+      "Analytics & Conversion Tracking Setup",
+    ],
+  },
+  {
+    id: "ecommerce",
+    name: "E-Commerce & Digital Storefront",
+    about: `Vraunix Studio presents this proposal for an enterprise-ready e-commerce solution. We develop friction-free shopping experiences engineered to maximize cart value, checkout completion, and customer trust.
+
+### E-Commerce Capabilities
+Our store builds include secure payment gateway integration, automated inventory synchronization, customer account portals, and optimized multi-device checkouts.
+
+### Growth & Scalability
+Built on high-availability cloud infrastructure, your store will seamlessly handle traffic surges during promotions and campaigns without downtime or performance degradation.`,
+    defaultScope: [
+      "Custom E-Commerce Storefront UI/UX Design",
+      "Product Catalog, Variants & Category Architecture",
+      "Secure Payment Gateway Integration",
+      "Cart & One-Page Frictionless Checkout Flow",
+      "Customer Account, Order History & Invoicing Portal",
+      "Inventory Management & Automated Email Notifications",
+      "Mobile-First Responsive Optimization & Speed Hardening",
+    ],
+  },
+  {
+    id: "maintenance-support",
+    name: "Ongoing Maintenance & Technical Retainer",
+    about: `This agreement proposal outlines Vraunix Studio's ongoing technical maintenance and proactive engineering support. We protect your digital investment through scheduled updates, continuous monitoring, and on-demand development capacity.
+
+### Proactive Care
+We keep your codebase up-to-date, secure against vulnerabilities, and optimized for maximum speed and uptime.
+
+### Dedicated Support Window
+Your team gains direct access to senior engineers for quick issue resolution, content updates, and routine feature enhancements.`,
+    defaultScope: [
+      "Weekly Core & Dependency Security Updates",
+      "Continuous Automated Uptime & Error Monitoring",
+      "Offsite Encrypted Backups & Disaster Recovery",
+      "Monthly Performance & SEO Health Audits",
+      "Dedicated Monthly Support Hours for Feature Requests",
+      "Priority Incident Response SLA",
+    ],
+  },
+];
+

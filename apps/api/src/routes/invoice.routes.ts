@@ -7,6 +7,7 @@ import { actorFrom, routeId } from "./helpers.js";
 import { listInvoices, getInvoice, createInvoice, updateInvoice, issueInvoice } from "../services/invoice.service.js";
 import { generateInvoicePDF } from "../utils/pdf.js";
 import { Client } from "../database/models/client.js";
+import { getSettings } from "../services/settings.service.js";
 
 export const invoiceRouter = Router();
 
@@ -31,9 +32,10 @@ invoiceRouter.get("/:id/pdf", async (req, res) => {
   const id = routeId(req);
   const invoice = await getInvoice(id);
   const client = await Client.findById(invoice.clientId).lean();
-  const doc = generateInvoicePDF(invoice, client);
+  const settings = await getSettings();
+  const doc = generateInvoicePDF(invoice, client, settings);
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${invoice.number}.pdf"`);
+  res.setHeader("Content-Disposition", `inline; filename="${invoice.number}.pdf"`);
   doc.pipe(res);
 });
 
@@ -45,7 +47,7 @@ invoiceRouter.post("/", async (req, res) => {
 invoiceRouter.patch("/:id", async (req, res) => {
   const id = routeId(req);
   const actor = actorFrom(req);
-  sendData(res, await updateInvoice(id, actor, req));
+  sendData(res, await updateInvoice(id, req.body ?? {}, actor, req));
 });
 
 invoiceRouter.post("/:id/issue", async (req, res) => {

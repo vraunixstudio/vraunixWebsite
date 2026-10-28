@@ -3,6 +3,7 @@ import {
   COMPANY,
   CURRENCY_CODES,
   DEFAULT_CURRENCY,
+  DEFAULT_PROPOSAL_ABOUT_TEMPLATE,
   TIMELINE_OPTIONS,
   type PublicSettings,
   type SettingsUpdateInput,
@@ -46,6 +47,7 @@ export const DEFAULT_SETTINGS = {
       "This proposal is valid for the period stated above. Pricing and scope are based on the information available at the time of preparation. Work outside the agreed Scope of Work requires a documented change request.",
     nextSteps:
       "Review the proposal and Scope of Work. If everything is correct, confirm acceptance in writing so we can prepare the agreement and initial invoice.",
+    defaultAbout: DEFAULT_PROPOSAL_ABOUT_TEMPLATE,
   },
   email: {
     fromName: "Vraunix Studio",
@@ -131,6 +133,13 @@ export async function getSettings(): Promise<HydratedDocument<SettingsDocument>>
   }
   if (!settings) {
     throw new Error("Settings could not be initialized");
+  }
+  if (!settings.proposal?.defaultAbout) {
+    settings.proposal = {
+      ...settings.proposal,
+      defaultAbout: DEFAULT_PROPOSAL_ABOUT_TEMPLATE,
+    };
+    await settings.save();
   }
   return settings;
 }

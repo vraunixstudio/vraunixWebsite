@@ -32,6 +32,7 @@ export interface SettingsDocument {
     validityDays: number;
     defaultTerms?: string;
     nextSteps?: string;
+    defaultAbout?: string;
   };
   email: {
     fromName?: string;
@@ -107,6 +108,7 @@ const settingsSchema = new Schema<SettingsDocument>(
       validityDays: { type: Number, required: true, default: 30 },
       defaultTerms: { type: String },
       nextSteps: { type: String },
+      defaultAbout: { type: String },
     },
     email: {
       fromName: { type: String },

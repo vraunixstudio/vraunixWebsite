@@ -290,6 +290,7 @@ export type Settings = {
     validityDays: number;
     defaultTerms?: string;
     nextSteps?: string;
+    defaultAbout?: string;
   };
   email: {
     fromName: string;

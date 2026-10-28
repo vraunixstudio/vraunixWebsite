@@ -7,6 +7,7 @@ import { actorFrom, routeId } from "./helpers.js";
 import { listProposals, getProposal, createProposal, updateProposal, acceptProposal } from "../services/proposal.service.js";
 import { generateProposalPDF } from "../utils/pdf.js";
 import { Client } from "../database/models/client.js";
+import { getSettings } from "../services/settings.service.js";
 
 export const proposalRouter = Router();
 
@@ -31,9 +32,10 @@ proposalRouter.get("/:id/pdf", async (req, res) => {
   const id = routeId(req);
   const proposal = await getProposal(id);
   const client = await Client.findById(proposal.clientId).lean();
-  const doc = generateProposalPDF(proposal, client);
+  const settings = await getSettings();
+  const doc = generateProposalPDF(proposal, client, settings);
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${proposal.number}.pdf"`);
+  res.setHeader("Content-Disposition", `inline; filename="${proposal.number}.pdf"`);
   doc.pipe(res);
 });
 

@@ -18,7 +18,7 @@ settingsRouter.get("/", async (_req, res) => {
   sendData(res, await getSettings());
 });
 
-settingsRouter.patch("/", requireAdmin, async (req, res) => {
+const handleUpdateSettings = async (req: any, res: any) => {
   const input = parseInput(settingsUpdateSchema, req.body);
   const actor = actorFrom(req);
   const settings = await updateSettings(input, actor.id);
@@ -31,4 +31,7 @@ settingsRouter.patch("/", requireAdmin, async (req, res) => {
     req,
   });
   sendData(res, settings);
-});
+};
+
+settingsRouter.patch("/", requireAdmin, handleUpdateSettings);
+settingsRouter.put("/", requireAdmin, handleUpdateSettings);
