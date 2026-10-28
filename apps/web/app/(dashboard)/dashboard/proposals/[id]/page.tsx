@@ -21,7 +21,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   const settings = useApiResource<Settings>("/settings");
 
   const [busy, setBusy] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
 
@@ -103,20 +102,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
   return (
     <div className="dashboard-page proposal-detail-page" style={{ width: '100%' }}>
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
-
-      {/* PDF Preview Modal */}
-      <Modal
-        open={showPreview}
-        title="Proposal PDF Preview"
-        onClose={() => setShowPreview(false)}
-        wide
-      >
-        <iframe
-          src={`/api/v1/proposals/${id}/pdf`}
-          style={{ width: '100%', height: '70vh', border: 'none' }}
-          title="Proposal Preview"
-        />
-      </Modal>
 
       {/* Edit Proposal Modal */}
       <Modal
@@ -242,14 +227,6 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button
-              className="vx-button vx-button--secondary vx-button--md"
-              onClick={() => setShowPreview(true)}
-            >
-              <Icon name="eye" size={15} />
-              Preview PDF
-            </Button>
-
             <Button
               className="vx-button vx-button--secondary vx-button--md"
               onClick={() => window.open(`/api/v1/proposals/${id}/pdf`, '_blank')}

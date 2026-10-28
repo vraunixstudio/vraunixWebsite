@@ -92,13 +92,6 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               <Icon name="download" size={15} />
               Download PDF
             </Button>
-            <Button
-              className="vx-button vx-button--secondary vx-button--md"
-              onClick={() => router.push(`/dashboard/invoices/${id}/edit`)}
-            >
-              <Icon name="pen" size={15} />
-              Edit
-            </Button>
             {invoice.status === "draft" && (
               <Button
                 className="vx-button vx-button--primary vx-button--md"
