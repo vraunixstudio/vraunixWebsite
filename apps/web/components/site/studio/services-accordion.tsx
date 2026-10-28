@@ -98,7 +98,7 @@ export function ServicesAccordion() {
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKey);
+      window.removeEventListener("keydown", onKey);
     };
   }, [active]);
 

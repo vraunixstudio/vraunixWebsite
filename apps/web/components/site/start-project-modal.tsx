@@ -55,7 +55,7 @@ export function StartProjectModal({ open, onClose }: StartProjectModalProps) {
   // Form state
   const [selectedServices, setSelectedServices] = useState<string[]>(["Website Development"]);
   const [selectedStage, setSelectedStage] = useState<string>("New Project / MVP");
-  const [selectedBudget, setSelectedBudget] = useState<string>(BUDGETS[0]);
+  const [selectedBudget, setSelectedBudget] = useState<string>(BUDGETS[0] || "");
   const [selectedTimeline, setSelectedTimeline] = useState<string>("Within 1 month");
   const [projectBrief, setProjectBrief] = useState<string>("");
   const [name, setName] = useState<string>("");
