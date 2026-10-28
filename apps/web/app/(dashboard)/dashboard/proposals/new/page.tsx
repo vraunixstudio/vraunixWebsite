@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@vraunix/shared";
-import type { Client } from "@/lib/types";
+import { CURRENCY_CODES, DEFAULT_CURRENCY, DEFAULT_PROPOSAL_ABOUT_TEMPLATE, PROPOSAL_TEMPLATES } from "@vraunix/shared";
+import type { Client, Settings } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,43 @@ export default function NewProposalPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clients = useApiResource<Client[]>("/clients?limit=100");
+  const settings = useApiResource<Settings>("/settings");
+
   const [clientId, setClientId] = useState(searchParams.get("clientId") ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [scope, setScope] = useState("");
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [total, setTotal] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("default");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
+
+  // Auto-apply default template as soon as settings load
+  useEffect(() => {
+    if (settings.data && !description) {
+      const defaultAbout = settings.data.proposal?.defaultAbout || DEFAULT_PROPOSAL_ABOUT_TEMPLATE;
+      setDescription(defaultAbout);
+    }
+  }, [settings.data]);
+
+  function handleTemplateSelect(templateId: string) {
+    setSelectedTemplate(templateId);
+    if (templateId === "default") {
+      const defaultAbout = settings.data?.proposal?.defaultAbout || DEFAULT_PROPOSAL_ABOUT_TEMPLATE;
+      setDescription(defaultAbout);
+      setToast({ tone: "success", message: "Auto-applied studio default proposal template." });
+    } else {
+      const found = PROPOSAL_TEMPLATES.find((t) => t.id === templateId);
+      if (found) {
+        setDescription(found.about);
+        if (!scope.trim()) {
+          setScope(found.defaultScope.join("\n"));
+        }
+        setToast({ tone: "success", message: `Applied ${found.name} template.` });
+      }
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -59,7 +88,7 @@ export default function NewProposalPage() {
             New Proposal
           </h1>
           <p style={{ color: 'var(--vx-muted)', fontSize: '0.95rem', marginTop: '0.25rem' }}>
-            Draft a clear service scope and pricing agreement for your client.
+            Draft a clear service scope and pricing agreement with auto-applied templates.
           </p>
         </div>
 
@@ -81,7 +110,7 @@ export default function NewProposalPage() {
               onChange={(e) => setTitle(e.target.value)}
               required
               minLength={2}
-              placeholder="e.g. Website Redesign & Brand Strategy"
+              placeholder="e.g. Next-Generation Web Platform & Brand Strategy"
             />
           </label>
 
@@ -113,6 +142,62 @@ export default function NewProposalPage() {
             </label>
           </div>
 
+          {/* Template Bar */}
+          <div style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '1.25rem 1.5rem', borderRadius: '0.875rem', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '0.8rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--vx-color-ink)' }}>
+                  Proposal &ldquo;About&rdquo; Template:
+                </span>
+                <span className="vx-badge vx-badge--success" style={{ fontSize: '0.72rem', textTransform: 'none' }}>
+                  Auto-Applied
+                </span>
+              </div>
+              <span style={{ fontSize: '0.78rem', color: 'var(--vx-muted)' }}>
+                You can select a different preset or edit the text directly below
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => handleTemplateSelect("default")}
+                className={`vx-button ${selectedTemplate === "default" ? "vx-button--primary" : "vx-button--secondary"} vx-button--sm`}
+                style={{ fontSize: '0.8rem' }}
+              >
+                Studio Default Template
+              </button>
+              {PROPOSAL_TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  onClick={() => handleTemplateSelect(tmpl.id)}
+                  className={`vx-button ${selectedTemplate === tmpl.id ? "vx-button--primary" : "vx-button--secondary"} vx-button--sm`}
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  {tmpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Proposal About / Overview Field */}
+          <label className="field" style={{ gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.35rem' }}>
+              <span>Proposal &ldquo;About&rdquo; & Project Overview *</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--vx-muted)' }}>
+                Editable text — customize freely for this client
+              </span>
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={8}
+              style={{ lineHeight: 1.6 }}
+              placeholder="Outline project objectives, strategic approach, and quality standards..."
+            />
+          </label>
+
           <label className="field" style={{ gridColumn: '1 / -1' }}>
             <span>Scope Deliverables (One per line)</span>
             <textarea
@@ -120,16 +205,6 @@ export default function NewProposalPage() {
               onChange={(e) => setScope(e.target.value)}
               rows={5}
               placeholder="Custom UI/UX Design System&#10;Next.js Web Application Development&#10;SEO Optimization & Launch Support"
-            />
-          </label>
-
-          <label className="field" style={{ gridColumn: '1 / -1' }}>
-            <span>Terms & Summary Notes</span>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              placeholder="Outline project timeline, payment terms, or special conditions..."
             />
           </label>
         </div>
