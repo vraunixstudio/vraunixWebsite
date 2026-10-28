@@ -73,6 +73,13 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
               <Icon name="download" size={15} />
               Download PDF
             </Button>
+            <Button
+              className="vx-button vx-button--secondary vx-button--md"
+              onClick={() => router.push(`/dashboard/proposals/${id}/edit`)}
+            >
+              <Icon name="pen" size={15} />
+              Edit
+            </Button>
             {proposal.status === "accepted" && (
               <Button
                 className="vx-button vx-button--secondary vx-button--md"
