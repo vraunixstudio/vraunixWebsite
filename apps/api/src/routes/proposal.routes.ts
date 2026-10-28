@@ -4,7 +4,9 @@ import { parseInput } from "../middleware/validate.js";
 import { idParamSchema } from "@vraunix/shared";
 import { sendData } from "../utils/response.js";
 import { actorFrom, routeId } from "./helpers.js";
-import { listProposals, getProposal, createProposal, updateProposal, sendProposal, acceptProposal } from "../services/proposal.service.js";
+import { listProposals, getProposal, createProposal, updateProposal, acceptProposal } from "../services/proposal.service.js";
+import { generateProposalPDF } from "../utils/pdf.js";
+import { Client } from "../database/models/client.js";
 
 export const proposalRouter = Router();
 
@@ -25,6 +27,16 @@ proposalRouter.get("/:id", async (req, res) => {
   sendData(res, await getProposal(id));
 });
 
+proposalRouter.get("/:id/pdf", async (req, res) => {
+  const id = routeId(req);
+  const proposal = await getProposal(id);
+  const client = await Client.findById(proposal.clientId).lean();
+  const doc = generateProposalPDF(proposal, client);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${proposal.number}.pdf"`);
+  doc.pipe(res);
+});
+
 proposalRouter.post("/", async (req, res) => {
   const actor = actorFrom(req);
   sendData(res, await createProposal(req.body ?? {}, actor, req), 201);
@@ -34,12 +46,6 @@ proposalRouter.patch("/:id", async (req, res) => {
   const id = routeId(req);
   const actor = actorFrom(req);
   sendData(res, await updateProposal(id, req.body ?? {}, actor, req));
-});
-
-proposalRouter.post("/:id/send", async (req, res) => {
-  const id = routeId(req);
-  const actor = actorFrom(req);
-  sendData(res, await sendProposal(id, actor, req));
 });
 
 proposalRouter.post("/:id/accept", async (req, res) => {

@@ -85,6 +85,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <Button
+              className="vx-button vx-button--secondary vx-button--md"
+              onClick={() => window.open(`/api/v1/invoices/${id}/pdf`, '_blank')}
+            >
+              <Icon name="download" size={15} />
+              Download PDF
+            </Button>
             {invoice.status === "draft" && (
               <Button
                 className="vx-button vx-button--primary vx-button--md"

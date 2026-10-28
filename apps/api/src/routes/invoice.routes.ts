@@ -5,6 +5,8 @@ import { idParamSchema } from "@vraunix/shared";
 import { sendData } from "../utils/response.js";
 import { actorFrom, routeId } from "./helpers.js";
 import { listInvoices, getInvoice, createInvoice, updateInvoice, issueInvoice } from "../services/invoice.service.js";
+import { generateInvoicePDF } from "../utils/pdf.js";
+import { Client } from "../database/models/client.js";
 
 export const invoiceRouter = Router();
 
@@ -25,6 +27,16 @@ invoiceRouter.get("/:id", async (req, res) => {
   sendData(res, await getInvoice(id));
 });
 
+invoiceRouter.get("/:id/pdf", async (req, res) => {
+  const id = routeId(req);
+  const invoice = await getInvoice(id);
+  const client = await Client.findById(invoice.clientId).lean();
+  const doc = generateInvoicePDF(invoice, client);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `attachment; filename="${invoice.number}.pdf"`);
+  doc.pipe(res);
+});
+
 invoiceRouter.post("/", async (req, res) => {
   const actor = actorFrom(req);
   sendData(res, await createInvoice(req.body ?? {}, actor, req), 201);
@@ -33,7 +45,7 @@ invoiceRouter.post("/", async (req, res) => {
 invoiceRouter.patch("/:id", async (req, res) => {
   const id = routeId(req);
   const actor = actorFrom(req);
-  sendData(res, await updateInvoice(id, req.body ?? {}, actor, req));
+  sendData(res, await updateInvoice(id, actor, req));
 });
 
 invoiceRouter.post("/:id/issue", async (req, res) => {

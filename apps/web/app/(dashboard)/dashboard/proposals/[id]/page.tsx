@@ -67,39 +67,13 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {proposal.status === "draft" && (
-              <Button
-                className="vx-button vx-button--primary vx-button--md"
-                onClick={() => run(() => api(`/proposals/${id}/send`, { method: "POST" }), "Proposal sent.")}
-                loading={busy}
-              >
-                <Icon name="send" size={15} />
-                Send Proposal
-              </Button>
-            )}
-            {proposal.status === "sent" && (
-              <>
-                <Button
-                  className="vx-button vx-button--primary vx-button--md"
-                  onClick={() => run(() => api(`/proposals/${id}/accept`, { method: "POST" }), "Proposal accepted.")}
-                  loading={busy}
-                >
-                  <Icon name="check" size={15} />
-                  Accept
-                </Button>
-                <Button
-                  className="vx-button vx-button--secondary vx-button--md"
-                  onClick={() => run(async () => {
-                    await api(`/proposals/${id}/accept`, { method: "POST" });
-                    await api(`/projects/from-proposal/${id}`, { method: "POST" });
-                  }, "Accepted and project created.")}
-                  loading={busy}
-                >
-                  <Icon name="briefcase" size={15} />
-                  Accept & Project
-                </Button>
-              </>
-            )}
+            <Button
+              className="vx-button vx-button--secondary vx-button--md"
+              onClick={() => window.open(`/api/v1/proposals/${id}/pdf`, '_blank')}
+            >
+              <Icon name="download" size={15} />
+              Download PDF
+            </Button>
             {proposal.status === "accepted" && (
               <Button
                 className="vx-button vx-button--secondary vx-button--md"
