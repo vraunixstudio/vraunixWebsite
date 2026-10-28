@@ -56,9 +56,9 @@ export default function NewInvoicePage() {
           issueDate: new Date().toISOString().slice(0, 10),
           dueDate,
           lineItems: lineItems.map((item) => ({
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            description: item.description || "",
+            quantity: item.quantity || "1",
+            unitPrice: item.unitPrice || "0",
           })),
           taxRatePercent: taxRate,
           notes: notes || undefined,
