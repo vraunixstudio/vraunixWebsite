@@ -1,4 +1,4 @@
-import { CURRENCIES, DEFAULT_CURRENCY } from "./constants/currency.js";
+import { CURRENCIES, DEFAULT_CURRENCY } from "../constants/currency.js";
 
 export function money(
   minor: number | undefined | null,
