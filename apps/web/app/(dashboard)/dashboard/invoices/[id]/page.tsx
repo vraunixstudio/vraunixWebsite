@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { money, date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/dashboard/modal";
 import { Toast } from "@/components/dashboard/feedback";
 import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
@@ -19,6 +20,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const payments = useApiResource<Payment[]>(`/payments?invoiceId=${id}`);
 
   const [busy, setBusy] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("bank_transfer");
@@ -64,6 +66,19 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     <div className="dashboard-page invoice-detail-page" style={{ width: '100%' }}>
       {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
 
+      <Modal
+        open={showPreview}
+        title="Invoice Preview"
+        onClose={() => setShowPreview(false)}
+        wide
+      >
+        <iframe
+          src={`/api/v1/invoices/${id}/pdf`}
+          style={{ width: '100%', height: '70vh', border: 'none' }}
+          title="Invoice Preview"
+        />
+      </Modal>
+
       <div style={{ display: 'grid', gap: '2.5rem', width: '100%' }}>
         {/* Top Header Actions */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', width: '100%' }}>
@@ -85,6 +100,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+            <Button
+              className="vx-button vx-button--secondary vx-button--md"
+              onClick={() => setShowPreview(true)}
+            >
+              <Icon name="eye" size={15} />
+              Preview
+            </Button>
             <Button
               className="vx-button vx-button--secondary vx-button--md"
               onClick={() => window.open(`/api/v1/invoices/${id}/pdf`, '_blank')}
