@@ -1,0 +1,45 @@
+export const typography = {
+  family: {
+    display: '"Quicksand"',
+    body: '"Quicksand"',
+    mono: '"Quicksand"',
+  },
+  weight: {
+    regular: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
+    black: "800",
+  },
+  size: {
+    xs: "0.75rem",
+    sm: "0.875rem",
+    base: "1rem",
+    md: "1.0625rem",
+    lg: "1.25rem",
+    xl: "1.5rem",
+    "2xl": "2rem",
+    "3xl": "2.75rem",
+    "4xl": "3.75rem",
+    display: "clamp(3.6rem, 8.5vw, 8.2rem)",
+    displaySm: "clamp(2.9rem, 6vw, 5.6rem)",
+  },
+  lineHeight: {
+    tight: "0.94",
+    snug: "1.08",
+    normal: "1.5",
+    relaxed: "1.7",
+  },
+  letterSpacing: {
+    tight: "-0.04em",
+    snug: "-0.02em",
+    normal: "0",
+    wide: "0.08em",
+    widest: "0.16em",
+  },
+  measure: {
+    narrow: "46ch",
+    normal: "64ch",
+    wide: "78ch",
+  },
+} as const;

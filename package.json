@@ -1,0 +1,32 @@
+{
+  "name": "vraunix-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vraunix Studio public website and business operations platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @vraunix/api\" \"npm run dev -w @vraunix/web\"",
+    "build": "npm run build -w @vraunix/api && npm run build -w @vraunix/web",
+    "typecheck": "npm run typecheck -w @vraunix/shared && npm run typecheck -w @vraunix/api && npm run typecheck -w @vraunix/web",
+    "lint": "eslint .",
+    "test": "npm run test -w @vraunix/api",
+    "test:watch": "npm run test:watch -w @vraunix/api",
+    "seed": "npm run seed -w @vraunix/api",
+    "seed:admin": "npm run seed:admin -w @vraunix/api",
+    "seed:demo": "npm run seed:demo -w @vraunix/api"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+apps/api/storage/
+apps/web/.env.local
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
