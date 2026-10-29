@@ -7,21 +7,23 @@ import { getServerSession } from "@/lib/session";
 import { ThemeProvider } from "@/theme";
 import "./dashboard.css";
 
-export default async function DashboardLayout({
+async function DashboardSession({ children }: { children: ReactNode }) {
+  const session = await getServerSession();
+  if (!session) redirect("/?auth=login");
+
+  return <DashboardShell user={session.user}>{children}</DashboardShell>;
+}
+
+export default function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const session = await getServerSession();
-  if (!session) redirect("/?auth=login");
-
   return (
     <ThemeProvider theme="light" className="dashboard-theme">
-      <DashboardShell user={session.user}>
-        <Suspense fallback={<DashboardLayoutSkeleton />}>
-          {children}
-        </Suspense>
-      </DashboardShell>
+      <Suspense fallback={<DashboardLayoutSkeleton />}>
+        <DashboardSession>{children}</DashboardSession>
+      </Suspense>
     </ThemeProvider>
   );
 }

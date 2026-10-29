@@ -697,9 +697,6 @@ export function DashboardShell({
               title={syncActive ? "Syncing workspace data" : "Workspace data is up to date"}
             >
               <span className="dashboard-sync__dot" />
-              <span className="dashboard-sync__label">
-                {syncActive ? "Syncing" : "Synced"}
-              </span>
             </span>
             <div className="dashboard-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: 'transparent', border: 'none', padding: 0 }}>
               <span className="dashboard-profile__body" style={{ textAlign: 'right' }}>
