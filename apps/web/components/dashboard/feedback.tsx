@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icons";
 
@@ -33,20 +33,53 @@ export function Toast({
   message,
   tone = "success",
   onClose,
+  action,
+  duration = 4200,
 }: {
   message: string;
   tone?: "success" | "danger";
   onClose: () => void;
+  action?: { label: string; onClick: () => void };
+  duration?: number;
 }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const [paused, setPaused] = useState(false);
+  const timeout = action ? Math.max(duration, 8_000) : duration;
+
   useEffect(() => {
-    const timer = setTimeout(onClose, 4200);
-    return () => clearTimeout(timer);
-  }, [onClose]);
+    if (paused) return;
+    const timer = window.setTimeout(() => closeRef.current(), timeout);
+    return () => window.clearTimeout(timer);
+  }, [paused, timeout]);
 
   return (
-    <div className={`vx-toast vx-toast--${tone}`} role="status">
+    <div
+      className={`vx-toast vx-toast--${tone}`}
+      role={tone === "danger" ? "alert" : "status"}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setPaused(false);
+        }
+      }}
+    >
       <Icon name={tone === "success" ? "check" : "alert"} size={15} />
       <span>{message}</span>
+      {action && (
+        <button
+          type="button"
+          className="vx-toast__action"
+          onClick={() => {
+            action.onClick();
+            closeRef.current();
+          }}
+        >
+          {action.label}
+        </button>
+      )}
     </div>
   );
 }

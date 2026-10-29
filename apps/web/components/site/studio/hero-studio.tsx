@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import heroArtwork from "@/public/images/vraunix-hero-art.jpg";
 
 export function HeroStudio() {
   return (
@@ -38,11 +39,12 @@ export function HeroStudio() {
           {/* Right Column: Monochrome Hero Artwork Image */}
           <div className="hero-studio__media">
             <Image
-              src="/images/vraunix-hero-art.jpg"
+              src={heroArtwork}
               alt="Vraunix Studio — First-Class Website Development with Precision Engineering"
               width={1920}
               height={1080}
               priority
+              placeholder="blur"
               quality={95}
               className="hero-studio__image"
               sizes="(max-width: 1024px) 100vw, 50vw"

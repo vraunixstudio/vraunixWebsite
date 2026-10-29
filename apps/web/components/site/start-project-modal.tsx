@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { api, ApiError } from "@/lib/api";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useDialogFocus, useSwipeDismiss } from "@/lib/use-dialog";
 
 type ContactResult = {
   reference: string;
@@ -66,24 +67,20 @@ export function StartProjectModal({ open, onClose }: StartProjectModalProps) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const { sheetHandlers, sheetStyle } = useSwipeDismiss({
+    onDismiss: handleClose,
+    enabled: open,
+  });
+
+  useDialogFocus({
+    open: open && mounted,
+    onClose: handleClose,
+    containerRef: dialogRef,
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
 
   if (!open || !mounted) return null;
 
@@ -209,6 +206,10 @@ export function StartProjectModal({ open, onClose }: StartProjectModalProps) {
     >
       <div
         ref={dialogRef}
+        className="start-modal__card vx-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="start-project-title"
         tabIndex={-1}
         style={{
           background: '#ffffff',
@@ -221,19 +222,24 @@ export function StartProjectModal({ open, onClose }: StartProjectModalProps) {
           flexDirection: 'column',
           position: 'relative',
           overflow: 'hidden',
-          animation: 'fadeDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'fadeDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          ...sheetStyle
         }}
+        {...sheetHandlers}
       >
+        <div className="vx-sheet-handle" data-sheet-handle aria-hidden="true" />
         {/* Header */}
         <div style={{ padding: '2rem 2.25rem 0', textAlign: 'center' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--vx-muted)', display: 'block', marginBottom: '0.4rem' }}>
             / STUDIO /
           </span>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, fontFamily: 'var(--vx-font-display)', margin: 0 }}>
+          <h2 id="start-project-title" style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.1, fontFamily: 'var(--vx-font-display)', margin: 0 }}>
             {status === 'sent' ? 'Received' : 'Get Started'}
           </h2>
           <button
+            type="button"
             onClick={handleClose}
+            aria-label="Close dialog"
             style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', width: '36px', height: '36px', borderRadius: '50%', border: '1px solid rgba(20,20,20,0.1)', display: 'grid', placeItems: 'center', background: 'transparent', cursor: 'pointer', transition: 'background 0.2s' }}
           >
             <Icon name="x" size={16} />

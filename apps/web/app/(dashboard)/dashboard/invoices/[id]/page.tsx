@@ -1,10 +1,10 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@vraunix/shared";
 import type { Invoice, Payment, Client } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
-import { useApiResource } from "@/lib/use-api";
+import { invalidateApiCache, useApiResource } from "@/lib/use-api";
 import { money, date, fromMinor, titleCase } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
@@ -15,9 +15,22 @@ import {
   InvoicePaymentsSkeleton,
 } from "@/components/dashboard/page-skeletons";
 
+function createPaymentKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `payment-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: invoice, loading, error, reload } = useApiResource<Invoice>(`/invoices/${id}`);
+  const {
+    data: invoice,
+    loading,
+    error,
+    reload,
+    mutate,
+  } = useApiResource<Invoice>(`/invoices/${id}`);
   const { data: client } = useApiResource<Client>(invoice ? `/clients/${invoice.clientId}` : null);
   const payments = useApiResource<Payment[]>(`/payments?invoiceId=${id}`);
 
@@ -25,12 +38,21 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("bank_transfer");
+  const paymentKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    paymentKey.current = null;
+    setAmount("");
+    setToast(null);
+  }, [id]);
 
   async function run(action: () => Promise<unknown>, success: string): Promise<boolean> {
     setBusy(true);
     setToast(null);
     try {
       await action();
+      invalidateApiCache("/invoices");
+      invalidateApiCache("/payments");
       setToast({ tone: "success", message: success });
       reload();
       payments.reload();
@@ -58,6 +80,23 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       return;
     }
 
+    const previousInvoice = invoice;
+    const nextPaidMinor = (invoice.amountPaidMinor ?? 0) + amountMinor;
+    const nextBalanceMinor = Math.max(0, invoice.totalMinor - nextPaidMinor);
+    const key = paymentKey.current ?? createPaymentKey();
+    paymentKey.current = key;
+
+    mutate((current) =>
+      current
+        ? {
+            ...current,
+            amountPaidMinor: nextPaidMinor,
+            balanceMinor: nextBalanceMinor,
+            status: nextBalanceMinor === 0 ? "paid" : "partially_paid",
+          }
+        : current
+    );
+
     const recorded = await run(
       () => api("/payments", {
         method: "POST",
@@ -66,11 +105,18 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           amount: value.toFixed(2),
           method,
           receivedAt: new Date().toISOString().slice(0, 10),
+          idempotencyKey: key,
         },
       }),
       "Payment recorded and applied."
     );
-    if (recorded) setAmount("");
+
+    if (recorded) {
+      setAmount("");
+      paymentKey.current = null;
+    } else {
+      mutate(previousInvoice);
+    }
   }
 
   if (loading && !invoice) return <InvoiceDetailSkeleton />;
@@ -140,15 +186,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', width: '100%' }}>
           <div className="stat-card" style={{ padding: '1.5rem' }}>
             <span className="stat-card__label">Total Amount</span>
-            <strong>{money(invoice.totalMinor, invoice.currency)}</strong>
+            <strong className="vx-tabular">{money(invoice.totalMinor, invoice.currency)}</strong>
           </div>
           <div className="stat-card" style={{ padding: '1.5rem' }}>
             <span className="stat-card__label">Amount Paid</span>
-            <strong>{money(invoice.amountPaidMinor || 0, invoice.currency)}</strong>
+            <strong className="vx-tabular">{money(invoice.amountPaidMinor || 0, invoice.currency)}</strong>
           </div>
           <div className="stat-card" style={{ padding: '1.5rem' }}>
             <span className="stat-card__label">Balance Due</span>
-            <strong>{money(invoice.balanceMinor, invoice.currency)}</strong>
+            <strong className="vx-tabular">{money(invoice.balanceMinor, invoice.currency)}</strong>
           </div>
         </div>
 
@@ -185,14 +231,13 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
           {/* Record Payment or Payment Records */}
           <div style={{ display: 'grid', gap: '1.5rem' }}>
             {!["draft", "void"].includes(invoice.status) && invoice.balanceMinor > 0 && (
-              <form onSubmit={recordPayment} className="panel" style={{ background: '#ffffff', padding: '1.8rem 2rem', borderRadius: '1.25rem', border: '1px solid rgba(20,20,20,0.1)' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--vx-font-display)' }}>
-                  Record Payment
-                </h3>
-                <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
+              <form onSubmit={recordPayment} className="panel payment-form">
+                <h3 className="payment-form__title">Record Payment</h3>
+                <div className="payment-form__grid">
                   <label className="field">
                     <span>Amount ({invoice.currency}) *</span>
                     <input
+                      className="vx-tabular"
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
@@ -201,10 +246,8 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                       min="0.01"
                       max={fromMinor(invoice.balanceMinor, invoice.currency)}
                       step="0.01"
+                      inputMode="decimal"
                     />
-                    <small style={{ color: 'var(--vx-muted)', fontSize: '0.76rem' }}>
-                      Remaining: {money(invoice.balanceMinor, invoice.currency)}
-                    </small>
                   </label>
 
                   <label className="field">
@@ -218,9 +261,15 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     </select>
                   </label>
                 </div>
-                <Button type="submit" className="vx-button vx-button--primary vx-button--md" style={{ marginTop: '1.5rem' }} loading={busy}>
-                  Record Payment
-                </Button>
+                <div className="payment-form__footer">
+                  <p className="payment-form__remaining">
+                    Remaining balance
+                    <strong className="vx-tabular">{money(invoice.balanceMinor, invoice.currency)}</strong>
+                  </p>
+                  <Button type="submit" className="vx-button vx-button--primary vx-button--md" loading={busy}>
+                    Record Payment
+                  </Button>
+                </div>
               </form>
             )}
 
@@ -237,7 +286,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                   {payments.data.map((p) => (
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid rgba(20,20,20,0.06)' }}>
                       <div>
-                        <strong style={{ fontSize: '0.95rem' }}>{money(p.amountMinor, p.currency)}</strong>
+                        <strong className="vx-tabular" style={{ fontSize: '0.95rem' }}>{money(p.amountMinor, p.currency)}</strong>
                         <div style={{ fontSize: '0.78rem', color: 'var(--vx-muted)' }}>
                           {p.number} · {p.method.replace(/_/g, ' ')} · {date(p.receivedAt)}
                           {p.reference ? ` · ${p.reference}` : ''}
@@ -280,7 +329,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                     <strong style={{ fontSize: '0.95rem' }}>{item.description}</strong>
                     <div style={{ fontSize: '0.8rem', color: 'var(--vx-muted)' }}>Qty: {item.quantity}</div>
                   </div>
-                  <strong style={{ fontSize: '0.95rem' }}>{money(item.amountMinor, invoice.currency)}</strong>
+                  <strong className="vx-tabular" style={{ fontSize: '0.95rem' }}>{money(item.amountMinor, invoice.currency)}</strong>
                 </div>
               ))}
             </div>

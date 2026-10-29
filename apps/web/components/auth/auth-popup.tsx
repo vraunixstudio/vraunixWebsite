@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { SessionUser } from "@vraunix/shared";
 import { LoginForm } from "@/components/auth/login-form";
 import { Icon } from "@/components/icons";
+import { useDialogFocus, useSwipeDismiss } from "@/lib/use-dialog";
 
 /**
  * AuthPopup renders a modal dialog containing the login form.
@@ -13,12 +14,29 @@ import { Icon } from "@/components/icons";
  * a seamless, on-page authentication experience without navigating to
  * a dedicated auth route.
  */
-export default function AuthPopup({ user = null }: { user?: SessionUser | null }) {
+export default function AuthPopup({
+  user = null,
+  sessionReady = true,
+}: {
+  user?: SessionUser | null;
+  sessionReady?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const { sheetHandlers, sheetStyle } = useSwipeDismiss({
+    onDismiss: () => setOpen(false),
+    enabled: open,
+  });
+
+  useDialogFocus({
+    open,
+    onClose: () => setOpen(false),
+    containerRef: dialogRef,
+  });
 
   useEffect(() => {
+    if (!sessionReady) return;
     const authRequested =
       new URLSearchParams(window.location.search).get("auth") === "login";
 
@@ -28,7 +46,11 @@ export default function AuthPopup({ user = null }: { user?: SessionUser | null }
     }
 
     if (authRequested) setOpen(true);
-  }, [router, user]);
+  }, [router, sessionReady, user]);
+
+  useEffect(() => {
+    if (open && user) setOpen(false);
+  }, [open, user]);
 
   function openAccount() {
     if (user) {
@@ -37,23 +59,6 @@ export default function AuthPopup({ user = null }: { user?: SessionUser | null }
     }
     setOpen(true);
   }
-
-  useEffect(() => {
-    if (!open) return;
-
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
 
   if (!open) {
     return (
@@ -103,9 +108,10 @@ export default function AuthPopup({ user = null }: { user?: SessionUser | null }
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="auth-popup-title"
+        aria-label="Sign in"
         tabIndex={-1}
         ref={dialogRef}
+        className="auth-popup__card vx-sheet"
         style={{
           position: 'relative',
           width: '100%',
@@ -116,9 +122,12 @@ export default function AuthPopup({ user = null }: { user?: SessionUser | null }
           boxShadow: '0 32px 80px -12px rgba(0, 0, 0, 0.35)',
           padding: '3rem 2.5rem 2.5rem',
           outline: 'none',
-          animation: 'fadeDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'fadeDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+          ...sheetStyle
         }}
+        {...sheetHandlers}
       >
+        <div className="vx-sheet-handle" data-sheet-handle aria-hidden="true" />
         <button
           type="button"
           aria-label="Close"

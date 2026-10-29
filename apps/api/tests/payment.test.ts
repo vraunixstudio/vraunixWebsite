@@ -186,6 +186,56 @@ describe("payment recording", () => {
     );
   });
 
+  it("reuses a payment for a repeated idempotency key without applying it twice", async () => {
+    const invoice = await createInvoice();
+    const idempotencyKey = `payment-test-${randomUUID()}`;
+    const input = {
+      invoiceId: String(invoice._id),
+      amount: "250.00",
+      method: "bank_transfer",
+      idempotencyKey,
+    };
+
+    const first = await recordPayment(input, actor);
+    const second = await recordPayment(input, actor);
+    createdPaymentIds.push(String(first._id));
+
+    expect(String(second._id)).toBe(String(first._id));
+    expect(await Payment.countDocuments({ invoiceId: invoice._id })).toBe(1);
+
+    const updated = await Invoice.findById(invoice._id).lean();
+    expect(updated?.amountPaidMinor).toBe(25_000);
+    expect(updated?.balanceMinor).toBe(75_000);
+  });
+
+  it("rejects an idempotency key reused for another invoice", async () => {
+    const invoice = await createInvoice();
+    const otherInvoice = await createInvoice();
+    const idempotencyKey = `payment-test-${randomUUID()}`;
+    const first = await recordPayment(
+      {
+        invoiceId: String(invoice._id),
+        amount: "250.00",
+        method: "bank_transfer",
+        idempotencyKey,
+      },
+      actor
+    );
+    createdPaymentIds.push(String(first._id));
+
+    await expect(
+      recordPayment(
+        {
+          invoiceId: String(otherInvoice._id),
+          amount: "250.00",
+          method: "bank_transfer",
+          idempotencyKey,
+        },
+        actor
+      )
+    ).rejects.toThrow("another invoice");
+  });
+
   it("records a payment through the authenticated HTTP API", async () => {
     const invoice = await createInvoice();
     const suffix = randomUUID();

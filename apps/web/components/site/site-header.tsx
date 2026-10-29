@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { SessionUser } from "@vraunix/shared";
 import { Logo } from "@/components/ui/logo";
 import { StartProjectModal } from "@/components/site/start-project-modal";
 import AuthPopup from "@/components/auth/auth-popup";
+import { useSessionUser } from "@/lib/use-session";
 
-export function SiteHeader({ user }: { user: SessionUser | null }) {
+export function SiteHeader() {
   const [modalOpen, setModalOpen] = useState(false);
+  const { user, ready } = useSessionUser();
 
   return (
     <header className="site-header">
@@ -17,7 +18,7 @@ export function SiteHeader({ user }: { user: SessionUser | null }) {
         </div>
 
         <div className="site-header__actions">
-          <AuthPopup user={user} />
+          <AuthPopup user={user} sessionReady={ready} />
           <button
             type="button"
             className="vx-button vx-button--pill-dark"

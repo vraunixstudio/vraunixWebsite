@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/icons";
+import { useDialogFocus, useSwipeDismiss } from "@/lib/use-dialog";
 
 export function ClientDialogShell({
   onClose,
@@ -18,56 +19,22 @@ export function ClientDialogShell({
 }) {
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
+  const { sheetHandlers, sheetStyle } = useSwipeDismiss({
+    onDismiss: onClose,
+    enabled: !inline,
+  });
+
+  useDialogFocus({
+    open: !inline && Boolean(target),
+    onClose,
+    containerRef: cardRef,
+  });
 
   useEffect(() => {
     if (inline) return;
     setTarget(
       document.querySelector<HTMLElement>(".dashboard-theme") ?? document.body
     );
-  }, [inline]);
-
-  useEffect(() => {
-    if (inline) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const focusTimer = window.setTimeout(() => cardRef.current?.focus(), 0);
-
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !cardRef.current) return;
-
-      const focusable = Array.from(
-        cardRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((element) => element.offsetParent !== null);
-
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.clearTimeout(focusTimer);
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
-    };
   }, [inline]);
 
   if (inline) {
@@ -106,13 +73,16 @@ export function ClientDialogShell({
     >
       <div
         ref={cardRef}
-        className="start-modal__card start-modal__card--stepper client-dialog__card"
+        className="start-modal__card start-modal__card--stepper client-dialog__card vx-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
         tabIndex={-1}
+        style={sheetStyle}
         onMouseDown={(event) => event.stopPropagation()}
+        {...sheetHandlers}
       >
+        <div className="vx-sheet-handle" data-sheet-handle aria-hidden="true" />
         <button
           type="button"
           className="start-modal__close client-dialog__close"

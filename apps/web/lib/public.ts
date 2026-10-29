@@ -35,7 +35,7 @@ const fallbackSettings: PublicSettings = {
 async function getPublic<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_INTERNAL_URL}/api/v1/public${path}`, {
-      cache: "no-store",
+      next: { revalidate: 300, tags: ["public-content"] },
       signal: AbortSignal.timeout(SERVER_API_TIMEOUT_MS),
       headers: { Accept: "application/json" },
     });

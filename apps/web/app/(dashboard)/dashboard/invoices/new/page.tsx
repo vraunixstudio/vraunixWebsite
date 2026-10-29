@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CURRENCY_CODES, DEFAULT_CURRENCY } from "@vraunix/shared";
 import type { Client } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
-import { useApiResource } from "@/lib/use-api";
+import { invalidateApiCache, useApiResource } from "@/lib/use-api";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
 import { ErrorState } from "@/components/ui/states";
@@ -32,15 +32,30 @@ export default function NewInvoicePage() {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ tone: "success" | "danger"; message: string } | null>(null);
+  const [undoLine, setUndoLine] = useState<{ index: number; item: LineItem } | null>(null);
 
   function addLineItem() {
     setLineItems([...lineItems, { description: "", quantity: "1", unitPrice: "" }]);
+    setUndoLine(null);
   }
 
   function removeLineItem(index: number) {
-    if (lineItems.length > 1) {
-      setLineItems(lineItems.filter((_, i) => i !== index));
-    }
+    if (lineItems.length <= 1) return;
+    const removed = lineItems[index];
+    if (!removed) return;
+    setLineItems(lineItems.filter((_, itemIndex) => itemIndex !== index));
+    setUndoLine({ index, item: removed });
+    setToast({ tone: "success", message: "Line item removed." });
+  }
+
+  function undoRemoveLineItem() {
+    if (!undoLine) return;
+    setLineItems((items) => {
+      const next = [...items];
+      next.splice(Math.min(undoLine.index, next.length), 0, undoLine.item);
+      return next;
+    });
+    setUndoLine(null);
   }
 
   function updateLineItem(index: number, field: keyof LineItem, value: string) {
@@ -58,6 +73,7 @@ export default function NewInvoicePage() {
     event.preventDefault();
     setBusy(true);
     setToast(null);
+    setUndoLine(null);
     try {
       const result = await api<{ id: string }>("/invoices", {
         method: "POST",
@@ -76,6 +92,7 @@ export default function NewInvoicePage() {
           notes: notes || undefined,
         },
       });
+      invalidateApiCache("/invoices");
       router.push(`/dashboard/invoices/${result.data.id}`);
     } catch (cause) {
       setToast({ tone: "danger", message: cause instanceof ApiError ? cause.message : "Could not create invoice" });
@@ -88,7 +105,21 @@ export default function NewInvoicePage() {
 
   return (
     <div className="dashboard-page new-invoice-page" style={{ width: '100%' }}>
-      {toast && <Toast message={toast.message} tone={toast.tone} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          tone={toast.tone}
+          onClose={() => {
+            setToast(null);
+            setUndoLine(null);
+          }}
+          action={
+            undoLine
+              ? { label: "Undo", onClick: undoRemoveLineItem }
+              : undefined
+          }
+        />
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem', width: '100%' }}>
         <div>

@@ -13,6 +13,7 @@ export interface PaymentDocument {
   receivedAt: Date;
   verificationStatus: "pending" | "verified" | "rejected";
   notes?: string;
+  idempotencyKey?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,10 +30,12 @@ const paymentSchema = new Schema<PaymentDocument>(
     receivedAt: { type: Date, required: true },
     verificationStatus: { type: String, enum: ["pending", "verified", "rejected"], default: "pending" },
     notes: { type: String, trim: true, maxlength: 2000 },
+    idempotencyKey: { type: String, trim: true, maxlength: 120 },
   },
   baseSchemaOptions
 );
 
 paymentSchema.index({ invoiceId: 1 });
+paymentSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 
 export const Payment = model<PaymentDocument>("Payment", paymentSchema);

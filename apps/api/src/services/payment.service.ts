@@ -2,7 +2,7 @@ import type { ClientSession, HydratedDocument } from "mongoose";
 import { withOptionalTransaction } from "../database/connect.js";
 import { Counter } from "../database/models/counter.js";
 import { Invoice, type InvoiceDocument } from "../database/models/invoice.js";
-import { Payment } from "../database/models/payment.js";
+import { Payment, type PaymentDocument } from "../database/models/payment.js";
 import { AppError } from "../utils/http-error.js";
 import { recordAudit } from "./audit.service.js";
 import type { Request } from "express";
@@ -16,7 +16,17 @@ type RecordPaymentInput = {
   reference?: string;
   receivedAt?: string;
   notes?: string;
+  idempotencyKey?: string;
 };
+
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === 11000
+  );
+}
 
 async function nextNumber(key: string, prefix: string, session?: ClientSession) {
   const counter = await Counter.findByIdAndUpdate(
@@ -75,47 +85,73 @@ export async function listPayments(options: { page?: number; limit?: number; sea
 
 export async function recordPayment(input: RecordPaymentInput, actor: PaymentActor, req?: Request) {
   const amountMinor = paymentAmountMinor(input.amount);
+  const idempotencyKey = input.idempotencyKey?.trim() || undefined;
 
-  const payment = await withOptionalTransaction(async (session) => {
-    const invoice = await Invoice.findById(input.invoiceId).session(session ?? null);
-    if (!invoice) throw AppError.notFound("Invoice not found");
-    if (invoice.status === "draft") {
-      throw AppError.badRequest("Issue this invoice before recording a payment");
+  if (idempotencyKey) {
+    const existing = await Payment.findOne({ idempotencyKey });
+    if (existing) {
+      if (String(existing.invoiceId) !== String(input.invoiceId)) {
+        throw AppError.conflict("Idempotency key was already used for another invoice");
+      }
+      return existing;
     }
-    if (invoice.status === "void") {
-      throw AppError.badRequest("Payments cannot be recorded against a void invoice");
-    }
+  }
 
-    const balanceMinor = Math.max(
-      0,
-      invoice.totalMinor - (invoice.amountPaidMinor ?? 0)
-    );
-    if (balanceMinor === 0) {
-      throw AppError.conflict("This invoice is already fully paid");
-    }
-    if (amountMinor > balanceMinor) {
-      throw AppError.badRequest("Payment amount exceeds the remaining invoice balance");
-    }
+  let payment: HydratedDocument<PaymentDocument>;
+  try {
+    payment = await withOptionalTransaction(async (session) => {
+      const invoice = await Invoice.findById(input.invoiceId).session(session ?? null);
+      if (!invoice) throw AppError.notFound("Invoice not found");
+      if (invoice.status === "draft") {
+        throw AppError.badRequest("Issue this invoice before recording a payment");
+      }
+      if (invoice.status === "void") {
+        throw AppError.badRequest("Payments cannot be recorded against a void invoice");
+      }
 
-    const payment = new Payment({
-      invoiceId: invoice._id,
-      clientId: invoice.clientId,
-      number: await nextNumber("payment", "PAY", session),
-      amountMinor,
-      currency: invoice.currency,
-      method: input.method,
-      reference: input.reference,
-      receivedAt: paymentReceivedAt(input.receivedAt),
-      verificationStatus: "verified",
-      notes: input.notes,
+      const balanceMinor = Math.max(
+        0,
+        invoice.totalMinor - (invoice.amountPaidMinor ?? 0)
+      );
+      if (balanceMinor === 0) {
+        throw AppError.conflict("This invoice is already fully paid");
+      }
+      if (amountMinor > balanceMinor) {
+        throw AppError.badRequest("Payment amount exceeds the remaining invoice balance");
+      }
+
+      const payment = new Payment({
+        invoiceId: invoice._id,
+        clientId: invoice.clientId,
+        number: await nextNumber("payment", "PAY", session),
+        amountMinor,
+        currency: invoice.currency,
+        method: input.method,
+        reference: input.reference,
+        receivedAt: paymentReceivedAt(input.receivedAt),
+        verificationStatus: "verified",
+        notes: input.notes,
+        idempotencyKey,
+      });
+      await payment.save(session ? { session } : {});
+
+      applyPayment(invoice, amountMinor);
+      await invoice.save(session ? { session } : {});
+
+      return payment;
     });
-    await payment.save(session ? { session } : {});
-
-    applyPayment(invoice, amountMinor);
-    await invoice.save(session ? { session } : {});
-
-    return payment;
-  });
+  } catch (error) {
+    if (idempotencyKey && isDuplicateKeyError(error)) {
+      const existing = await Payment.findOne({ idempotencyKey });
+      if (existing) {
+        if (String(existing.invoiceId) !== String(input.invoiceId)) {
+          throw AppError.conflict("Idempotency key was already used for another invoice");
+        }
+        return existing;
+      }
+    }
+    throw error;
+  }
 
   await recordAudit({ actor, action: "payment.recorded", entityType: "Payment", entityId: String(payment._id), req });
   return payment;

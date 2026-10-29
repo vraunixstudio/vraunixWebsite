@@ -5,6 +5,7 @@ import {
   connectDatabase,
   disconnectDatabase,
 } from "./database/connect.js";
+import { Payment } from "./database/models/payment.js";
 import { ensureSettings } from "./services/settings.service.js";
 import { logger } from "./utils/logger.js";
 
@@ -13,6 +14,12 @@ let shuttingDown = false;
 
 async function start(): Promise<void> {
   await connectDatabase();
+  await Payment.createIndexes().catch((error: unknown) => {
+    logger.warn(
+      { err: error },
+      "Could not ensure payment indexes; idempotency falls back to sequential replay checks"
+    );
+  });
   await ensureSettings();
 
   server.listen(env.PORT, () => {

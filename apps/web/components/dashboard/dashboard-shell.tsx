@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { SessionUser } from "@vraunix/shared";
 import { Icon, type IconName } from "@/components/icons";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/dashboard/modal";
 import { api, resetCsrf } from "@/lib/api";
 import { money } from "@/lib/format";
 import type { Client, Inquiry, Invoice, Project, Proposal } from "@/lib/types";
-import { useDebouncedValue } from "@/lib/use-api";
+import { useApiActivity, useDebouncedValue } from "@/lib/use-api";
 
 type NavItem = {
   label: string;
@@ -98,6 +99,11 @@ export function DashboardShell({
   const [recordResults, setRecordResults] = useState<RecordSearchResult[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordsError, setRecordsError] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
+  const syncActive = useApiActivity() > 0;
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchListId = useId();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Clients: true,
     Admin: false,
@@ -126,12 +132,25 @@ export function DashboardShell({
           item.label.toLowerCase().includes(searchQuery) ||
           item.href.toLowerCase().includes(searchQuery)
       )
-    : [];
+    : searchableItems;
   const recordsPending =
-    recordsLoading ||
-    (search.trim().length >= 2 && debouncedSearch.trim() !== search.trim());
+    search.trim().length >= 2 &&
+    (recordsLoading || debouncedSearch.trim() !== search.trim());
+  const visibleRecordResults = recordsPending ? [] : recordResults;
+  const optionItems = [
+    ...visibleRecordResults.map((result) => ({
+      key: result.key,
+      href: result.href,
+    })),
+    ...pageResults.map((item) => ({
+      key: `page-${item.href}`,
+      href: item.href,
+    })),
+  ];
+  const activeOption = optionItems[activeIndex];
   const hasSearchResults =
-    recordResults.length > 0 || pageResults.length > 0;
+    visibleRecordResults.length > 0 || pageResults.length > 0;
+  const showSearchPanel = searchOpen && (searchQuery.length > 0 || pageResults.length > 0);
 
   useEffect(() => {
     const query = debouncedSearch.trim();
@@ -148,6 +167,7 @@ export function DashboardShell({
 
     setRecordsLoading(true);
     setRecordsError(false);
+    setRecordResults([]);
 
     Promise.allSettled([
       api<Client[]>(`/clients?limit=3&search=${searchParam}`, {
@@ -270,6 +290,63 @@ export function DashboardShell({
   }, [pathname]);
 
   useEffect(() => {
+    setShortcutLabel(
+      /Mac|iPhone|iPad|iPod/.test(navigator.platform) ? "⌘K" : "Ctrl K"
+    );
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const target = event.target as HTMLElement | null;
+      const isTyping =
+        target?.matches('input, textarea, select, [contenteditable="true"]') ??
+        false;
+
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        event.key.toLowerCase() === "k"
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+        return;
+      }
+
+      if (
+        event.key === "/" &&
+        !isTyping &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        setSearchOpen(true);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    setActiveIndex((current) => {
+      if (optionItems.length === 0) return -1;
+      if (current < 0) return 0;
+      return Math.min(current, optionItems.length - 1);
+    });
+  }, [optionItems.length]);
+
+  useEffect(() => {
+    if (!searchOpen || activeIndex < 0) return;
+    document
+      .getElementById(`${searchListId}-option-${activeIndex}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, searchListId, searchOpen]);
+
+  useEffect(() => {
     if (!mobileOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMobileOpen(false);
@@ -285,13 +362,54 @@ export function DashboardShell({
   function goToSearchResult(href: string) {
     setSearch("");
     setSearchOpen(false);
+    setActiveIndex(0);
     router.push(href);
   }
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault();
-    const firstResult = recordResults[0] ?? pageResults[0];
-    if (firstResult) goToSearchResult(firstResult.href);
+    const result = activeOption ?? optionItems[0];
+    if (result) goToSearchResult(result.href);
+  }
+
+  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveIndex((current) =>
+        optionItems.length === 0
+          ? -1
+          : Math.min(current + 1, optionItems.length - 1)
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveIndex((current) =>
+        optionItems.length === 0 ? -1 : Math.max(current - 1, 0)
+      );
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setActiveIndex(optionItems.length > 0 ? 0 : -1);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(optionItems.length - 1);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setSearchOpen(false);
+      event.currentTarget.blur();
+    }
   }
 
   async function signOut() {
@@ -431,19 +549,56 @@ export function DashboardShell({
             >
               <Icon name="search" size={16} />
               <input
+                ref={searchInputRef}
                 type="search"
                 value={search}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSearchPanel}
+                aria-controls={showSearchPanel ? searchListId : undefined}
+                aria-activedescendant={
+                  showSearchPanel && activeIndex >= 0
+                    ? `${searchListId}-option-${activeIndex}`
+                    : undefined
+                }
                 onChange={(event) => {
-                  setSearch(event.target.value);
+                  const value = event.target.value;
+                  setSearch(value);
+                  if (value.trim().length < 2) setRecordResults([]);
                   setSearchOpen(true);
+                  setActiveIndex(0);
                 }}
                 onFocus={() => setSearchOpen(true)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search workspace"
-                aria-label="Search workspace"
+                aria-label="Search workspace. Press Control K or Command K to focus."
               />
-              {searchOpen && searchQuery && (
+              {search ? (
+                <button
+                  type="button"
+                  className="dashboard-search__clear"
+                  aria-label="Clear search"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    setSearch("");
+                    setRecordResults([]);
+                    searchInputRef.current?.focus();
+                    setSearchOpen(true);
+                  }}
+                >
+                  <Icon name="x" size={13} />
+                </button>
+              ) : (
+                <kbd className="dashboard-search__shortcut" aria-hidden="true">
+                  {shortcutLabel}
+                </kbd>
+              )}
+              {showSearchPanel && (
                 <div
+                  id={searchListId}
                   className="dashboard-search__results"
+                  role="listbox"
+                  aria-label="Workspace search results"
                   aria-busy={recordsPending}
                 >
                   {recordsPending && (
@@ -452,13 +607,21 @@ export function DashboardShell({
                     </p>
                   )}
 
-                  {!recordsPending && recordResults.length > 0 && (
+                  {visibleRecordResults.length > 0 && (
                     <>
-                      <p className="dashboard-search__section">Records</p>
-                      {recordResults.map((result) => (
+                      <p className="dashboard-search__section" role="presentation">
+                        Records
+                      </p>
+                      {visibleRecordResults.map((result, index) => (
                         <button
                           key={result.key}
+                          id={`${searchListId}-option-${index}`}
                           type="button"
+                          role="option"
+                          aria-selected={index === activeIndex}
+                          className={
+                            index === activeIndex ? "is-active" : undefined
+                          }
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => goToSearchResult(result.href)}
                         >
@@ -483,21 +646,32 @@ export function DashboardShell({
 
                   {pageResults.length > 0 && (
                     <>
-                      <p className="dashboard-search__section">Pages</p>
-                      {pageResults.map((item) => (
-                        <button
-                          key={item.href}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => goToSearchResult(item.href)}
-                        >
-                          <Icon name={item.icon} size={16} />
-                          <span>{item.label}</span>
-                          <span className="dashboard-search__path">
-                            {item.group ?? "Workspace"}
-                          </span>
-                        </button>
-                      ))}
+                      <p className="dashboard-search__section" role="presentation">
+                        {searchQuery ? "Pages" : "Jump to"}
+                      </p>
+                      {pageResults.map((item, pageIndex) => {
+                        const index = visibleRecordResults.length + pageIndex;
+                        return (
+                          <button
+                            key={item.href}
+                            id={`${searchListId}-option-${index}`}
+                            type="button"
+                            role="option"
+                            aria-selected={index === activeIndex}
+                            className={
+                              index === activeIndex ? "is-active" : undefined
+                            }
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => goToSearchResult(item.href)}
+                          >
+                            <Icon name={item.icon} size={16} />
+                            <span>{item.label}</span>
+                            <span className="dashboard-search__path">
+                              {item.group ?? "Workspace"}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </>
                   )}
 
@@ -506,15 +680,31 @@ export function DashboardShell({
                       No matching records or pages
                     </p>
                   )}
+
+                  <div className="dashboard-search__hints" aria-hidden="true">
+                    <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+                    <span><kbd>↵</kbd> Open</span>
+                    <span><kbd>Esc</kbd> Close</span>
+                  </div>
                 </div>
               )}
             </form>
           </div>
           <div className="dashboard-topbar__right">
+            <span
+              className={`dashboard-sync ${syncActive ? "is-active" : ""}`}
+              aria-hidden="true"
+              title={syncActive ? "Syncing workspace data" : "Workspace data is up to date"}
+            >
+              <span className="dashboard-sync__dot" />
+              <span className="dashboard-sync__label">
+                {syncActive ? "Syncing" : "Synced"}
+              </span>
+            </span>
             <div className="dashboard-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', background: 'transparent', border: 'none', padding: 0 }}>
               <span className="dashboard-profile__body" style={{ textAlign: 'right' }}>
-                <strong style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.02em', display: 'block' }}>Vraunix Administrator</strong>
-                <span style={{ fontSize: '0.78rem', color: 'var(--vx-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Admin</span>
+                <strong className="dashboard-profile__name" title={user.name} style={{ fontSize: '0.95rem', fontWeight: 700, letterSpacing: '-0.02em', display: 'block' }}>{user.name}</strong>
+                <span style={{ fontSize: '0.78rem', color: 'var(--vx-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{user.role.replace(/_/g, " ")}</span>
               </span>
               <button
                 className="vx-button dashboard-profile__signout"
@@ -530,54 +720,36 @@ export function DashboardShell({
           </div>
         </header>
 
-        {confirmSignOut && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.4)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-          }}>
-            <div className="panel" style={{
-              background: '#ffffff',
-              borderRadius: '1.25rem',
-              padding: '2.5rem',
-              maxWidth: '440px',
-              width: '100%',
-              border: '1px solid rgba(20,20,20,0.1)',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-            }}>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', letterSpacing: '-0.03em', fontFamily: 'var(--vx-font-display)' }}>
-                Sign Out of Workspace
-              </h3>
-              <p style={{ color: 'var(--vx-muted)', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                Are you sure you want to sign out of your Vraunix session? You will need to re-authenticate to access the studio.
-              </p>
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="vx-button vx-button--secondary vx-button--md"
-                  onClick={() => setConfirmSignOut(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  className="vx-button vx-button--primary vx-button--md"
-                  onClick={signOut}
-                  loading={signingOut}
-                >
-                  Confirm Sign Out
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <Modal
+          open={confirmSignOut}
+          title="Sign out of workspace"
+          description="Are you sure you want to sign out of your Vraunix session? You will need to re-authenticate to access the studio."
+          onClose={() => setConfirmSignOut(false)}
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                className="vx-button vx-button--secondary vx-button--md"
+                onClick={() => setConfirmSignOut(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="vx-button vx-button--primary vx-button--md"
+                onClick={signOut}
+                loading={signingOut}
+              >
+                Confirm sign out
+              </Button>
+            </>
+          }
+        >
+          <p style={{ color: "var(--vx-muted)", fontSize: "0.95rem" }}>
+            Any unsaved changes in this workspace will be discarded.
+          </p>
+        </Modal>
 
         <div className="dashboard-content">
           <header className="workspace-heading">

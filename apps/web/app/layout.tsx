@@ -3,6 +3,7 @@ import "@/theme/theme.css";
 import "./globals.css";
 import "./studio.css";
 import "./tap-highlight.css";
+import "./ux.css";
 
 export const metadata: Metadata = {
   title: {
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: "#0b1311",
   colorScheme: "light",
 };
