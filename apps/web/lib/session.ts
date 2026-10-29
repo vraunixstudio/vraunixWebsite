@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import type { SessionResponse } from "@vraunix/shared";
+import { SERVER_API_TIMEOUT_MS, getApiInternalUrl } from "./server-api";
 
-const API_INTERNAL_URL =
-  process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000";
+const API_INTERNAL_URL = getApiInternalUrl();
 
 export async function getServerSession(): Promise<SessionResponse | null> {
   try {
@@ -15,6 +15,7 @@ export async function getServerSession(): Promise<SessionResponse | null> {
 
     const response = await fetch(`${API_INTERNAL_URL}/api/v1/auth/session`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(SERVER_API_TIMEOUT_MS),
       headers: {
         Accept: "application/json",
         Cookie: cookieHeader,

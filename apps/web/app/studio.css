@@ -752,7 +752,7 @@
 }
 
 .service-modal__list li::before {
-  content: "Ã¢â‚¬â€";
+  content: "\2014";
   position: absolute;
   left: 0;
   color: var(--vx-muted);

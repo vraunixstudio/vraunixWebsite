@@ -10,9 +10,9 @@ import {
   type ServiceContent,
 } from "@vraunix/shared";
 import type { ServiceRecord } from "./types";
+import { SERVER_API_TIMEOUT_MS, getApiInternalUrl } from "./server-api";
 
-const API_INTERNAL_URL =
-  process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000";
+const API_INTERNAL_URL = getApiInternalUrl();
 
 const fallbackSettings: PublicSettings = {
   company: {
@@ -36,6 +36,7 @@ async function getPublic<T>(path: string): Promise<T | null> {
   try {
     const response = await fetch(`${API_INTERNAL_URL}/api/v1/public${path}`, {
       cache: "no-store",
+      signal: AbortSignal.timeout(SERVER_API_TIMEOUT_MS),
       headers: { Accept: "application/json" },
     });
     if (!response.ok) return null;

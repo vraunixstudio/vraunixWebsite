@@ -9,6 +9,9 @@ import { Icon, type IconName } from "@/components/icons";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { api, resetCsrf } from "@/lib/api";
+import { money } from "@/lib/format";
+import type { Client, Inquiry, Invoice, Project, Proposal } from "@/lib/types";
+import { useDebouncedValue } from "@/lib/use-api";
 
 type NavItem = {
   label: string;
@@ -16,6 +19,15 @@ type NavItem = {
   icon: IconName;
   adminOnly?: boolean;
   children?: NavItem[];
+};
+
+type RecordSearchResult = {
+  key: string;
+  title: string;
+  subtitle: string;
+  typeLabel: string;
+  href: string;
+  icon: IconName;
 };
 
 const navigation: NavItem[] = [
@@ -83,10 +95,14 @@ export function DashboardShell({
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [recordResults, setRecordResults] = useState<RecordSearchResult[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsError, setRecordsError] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     Clients: true,
     Admin: false,
   });
+  const debouncedSearch = useDebouncedValue(search, 280);
 
   const items = visibleNavigation(user);
   const location = resolveLocation(pathname, user);
@@ -104,13 +120,149 @@ export function DashboardShell({
     ).values()
   );
   const searchQuery = search.trim().toLowerCase();
-  const searchResults = searchQuery
+  const pageResults = searchQuery
     ? searchableItems.filter(
         (item) =>
           item.label.toLowerCase().includes(searchQuery) ||
           item.href.toLowerCase().includes(searchQuery)
       )
     : [];
+  const recordsPending =
+    recordsLoading ||
+    (search.trim().length >= 2 && debouncedSearch.trim() !== search.trim());
+  const hasSearchResults =
+    recordResults.length > 0 || pageResults.length > 0;
+
+  useEffect(() => {
+    const query = debouncedSearch.trim();
+    if (query.length < 2 || user.role !== "admin") {
+      setRecordResults([]);
+      setRecordsLoading(false);
+      setRecordsError(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+    const searchParam = encodeURIComponent(query);
+
+    setRecordsLoading(true);
+    setRecordsError(false);
+
+    Promise.allSettled([
+      api<Client[]>(`/clients?limit=3&search=${searchParam}`, {
+        signal: controller.signal,
+      }),
+      api<Inquiry[]>(`/inquiries?limit=3&search=${searchParam}`, {
+        signal: controller.signal,
+      }),
+      api<Proposal[]>(`/proposals?limit=3&search=${searchParam}`, {
+        signal: controller.signal,
+      }),
+      api<Project[]>(`/projects?limit=3&search=${searchParam}`, {
+        signal: controller.signal,
+      }),
+      api<Invoice[]>(`/invoices?limit=3&search=${searchParam}`, {
+        signal: controller.signal,
+      }),
+    ])
+      .then(([clients, inquiries, proposals, projects, invoices]) => {
+        if (!active) return;
+
+        const records: RecordSearchResult[] = [];
+
+        if (clients.status === "fulfilled") {
+          records.push(
+            ...clients.value.data.map((client) => ({
+              key: `client-${client.id}`,
+              title: client.name,
+              subtitle: client.contactName
+                ? `${client.contactName} · ${client.email}`
+                : client.email,
+              typeLabel: "Client",
+              href: `/dashboard/clients/${client.id}`,
+              icon: "building" as const,
+            }))
+          );
+        }
+
+        if (inquiries.status === "fulfilled") {
+          records.push(
+            ...inquiries.value.data.map((inquiry) => ({
+              key: `inquiry-${inquiry.id}`,
+              title: inquiry.businessName || inquiry.name,
+              subtitle:
+                inquiry.businessName && inquiry.businessName !== inquiry.name
+                  ? `${inquiry.name} · ${inquiry.email}`
+                  : inquiry.email,
+              typeLabel: "Inquiry",
+              href: `/dashboard/inquiries?inquiry=${inquiry.id}`,
+              icon: "target" as const,
+            }))
+          );
+        }
+
+        if (proposals.status === "fulfilled") {
+          records.push(
+            ...proposals.value.data.map((proposal) => ({
+              key: `proposal-${proposal.id}`,
+              title: proposal.title,
+              subtitle: `${proposal.number} · ${proposal.status.replace(/_/g, " ")}`,
+              typeLabel: "Proposal",
+              href: `/dashboard/proposals/${proposal.id}`,
+              icon: "file" as const,
+            }))
+          );
+        }
+
+        if (projects.status === "fulfilled") {
+          records.push(
+            ...projects.value.data.map((project) => ({
+              key: `project-${project.id}`,
+              title: project.name,
+              subtitle: project.status.replace(/_/g, " "),
+              typeLabel: "Project",
+              href: `/dashboard/projects/${project.id}`,
+              icon: "briefcase" as const,
+            }))
+          );
+        }
+
+        if (invoices.status === "fulfilled") {
+          records.push(
+            ...invoices.value.data.map((invoice) => ({
+              key: `invoice-${invoice.id}`,
+              title: invoice.number,
+              subtitle: `${money(invoice.totalMinor, invoice.currency)} · ${invoice.status.replace(/_/g, " ")}`,
+              typeLabel: "Invoice",
+              href: `/dashboard/invoices/${invoice.id}`,
+              icon: "receipt" as const,
+            }))
+          );
+        }
+
+        setRecordResults(records);
+        setRecordsError(
+          !controller.signal.aborted &&
+            [clients, inquiries, proposals, projects, invoices].some(
+              (result) => result.status === "rejected"
+            )
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        setRecordResults([]);
+        setRecordsError(!controller.signal.aborted);
+      })
+      .finally(() => {
+        if (active) setRecordsLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [debouncedSearch, user.role]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -138,7 +290,8 @@ export function DashboardShell({
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault();
-    if (searchResults[0]) goToSearchResult(searchResults[0].href);
+    const firstResult = recordResults[0] ?? pageResults[0];
+    if (firstResult) goToSearchResult(firstResult.href);
   }
 
   async function signOut() {
@@ -289,24 +442,69 @@ export function DashboardShell({
                 aria-label="Search workspace"
               />
               {searchOpen && searchQuery && (
-                <div className="dashboard-search__results">
-                  {searchResults.length > 0 ? (
-                    searchResults.map((item) => (
-                      <button
-                        key={item.href}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => goToSearchResult(item.href)}
-                      >
-                        <Icon name={item.icon} size={16} />
-                        <span>{item.label}</span>
-                        <span className="dashboard-search__path">
-                          {item.group ?? "Workspace"}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="dashboard-search__empty">No matching pages</p>
+                <div
+                  className="dashboard-search__results"
+                  aria-busy={recordsPending}
+                >
+                  {recordsPending && (
+                    <p className="dashboard-search__status" role="status">
+                      Searching records…
+                    </p>
+                  )}
+
+                  {!recordsPending && recordResults.length > 0 && (
+                    <>
+                      <p className="dashboard-search__section">Records</p>
+                      {recordResults.map((result) => (
+                        <button
+                          key={result.key}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => goToSearchResult(result.href)}
+                        >
+                          <Icon name={result.icon} size={16} />
+                          <span className="dashboard-search__result-body">
+                            <strong>{result.title}</strong>
+                            <small>{result.subtitle}</small>
+                          </span>
+                          <span className="dashboard-search__path">
+                            {result.typeLabel}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {!recordsPending && recordsError && (
+                    <p className="dashboard-search__status">
+                      Some records could not be searched.
+                    </p>
+                  )}
+
+                  {pageResults.length > 0 && (
+                    <>
+                      <p className="dashboard-search__section">Pages</p>
+                      {pageResults.map((item) => (
+                        <button
+                          key={item.href}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => goToSearchResult(item.href)}
+                        >
+                          <Icon name={item.icon} size={16} />
+                          <span>{item.label}</span>
+                          <span className="dashboard-search__path">
+                            {item.group ?? "Workspace"}
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {!recordsPending && !hasSearchResults && !recordsError && (
+                    <p className="dashboard-search__empty">
+                      No matching records or pages
+                    </p>
                   )}
                 </div>
               )}

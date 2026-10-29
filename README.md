@@ -81,6 +81,35 @@ npm run build
 - Ensure MongoDB, storage, and mail configuration are available in production.
 - Run `npm run seed` and `npm run seed:admin` once per new environment.
 
+### Vercel (frontend)
+
+The web app is ready to deploy on Vercel. The Express API is not a Vercel serverless
+application, so host it separately and point the frontend at it.
+
+1. Import the repository and set **Root Directory** to `apps/web`.
+2. Use Node.js 22 (pinned by `apps/web/.nvmrc`).
+3. Add these variables for **Production**, **Preview**, and **Development**:
+   ```dotenv
+   API_INTERNAL_URL=https://vraunixwebsite-api.onrender.com
+   NEXT_PUBLIC_API_BASE=/api/v1
+   ```
+   `API_INTERNAL_URL` is used by the `/api/*` rewrite and by server-rendered
+   session/public-content fetches. Keeping `NEXT_PUBLIC_API_BASE` on the
+   same-origin proxy preserves session cookies and CSRF protection.
+4. On the API deployment, set `WEB_ORIGIN` and `PUBLIC_APP_URL` to the Vercel
+   frontend origin, set `API_BASE_URL` to the API's public origin, enable
+   `TRUST_PROXY`, and keep `COOKIE_SECURE=true`.
+5. Redeploy the frontend whenever `API_INTERNAL_URL` changes, because Next.js
+   evaluates rewrites during the build.
+
+Preview deployments need their preview origin added to the API's allowed origins
+if staff authentication should work there. See `apps/web/.env.example` for the
+frontend variables and `vercel.json` for the build settings.
+
+The web app falls back to bundled public content and redirects protected pages
+to sign-in if the API is unavailable. On Render's free plan the API may need to
+cold-start, so keep it warm if first-load latency matters.
+
 ## Tests
 
 API tests use Vitest and Supertest. The test environment connects to MongoDB using `NODE_ENV=test` and `MONGODB_DATABASE=vraunix_studio_test`.

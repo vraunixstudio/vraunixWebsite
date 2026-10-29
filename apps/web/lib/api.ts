@@ -26,13 +26,45 @@ function readCookie(name: string): string | undefined {
 
 let csrfToken: string | null = null;
 
+const REQUEST_TIMEOUT_MS = 30_000;
+const DOWNLOAD_TIMEOUT_MS = 60_000;
+
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   mutation?: boolean;
 };
 
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: init.signal ?? AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new ApiError(
+        408,
+        "REQUEST_TIMEOUT",
+        "The server took too long to respond. Please try again."
+      );
+    }
+    if (error instanceof TypeError) {
+      throw new ApiError(
+        503,
+        "NETWORK_ERROR",
+        "Unable to reach the server. Please check your connection and try again."
+      );
+    }
+    throw error;
+  }
+}
+
 async function requestCsrfToken(): Promise<string> {
-  const response = await fetch(`${API_BASE}/auth/csrf`, {
+  const response = await fetchWithTimeout(`${API_BASE}/auth/csrf`, {
     method: "GET",
     credentials: "include",
     cache: "no-store",
@@ -104,7 +136,7 @@ export async function api<T>(
       headers.set("x-csrf-token", await ensureCsrf(retry));
     }
 
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetchWithTimeout(`${API_BASE}${path}`, {
       ...options,
       method,
       headers,
@@ -158,10 +190,14 @@ export async function downloadDocument(
   documentId: string,
   fileName: string
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}/documents/${documentId}/download`, {
-    credentials: "include",
-    cache: "no-store",
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE}/documents/${documentId}/download`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+    DOWNLOAD_TIMEOUT_MS
+  );
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as
       | ApiResponse<unknown>
