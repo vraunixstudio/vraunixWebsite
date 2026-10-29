@@ -1,10 +1,11 @@
 "use client";
 
 import { use, useState } from "react";
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from "@vraunix/shared";
 import type { Invoice, Payment, Client } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
-import { money, date } from "@/lib/format";
+import { money, date, fromMinor, titleCase } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
 import { EmptyState, ErrorState } from "@/components/ui/states";
@@ -25,7 +26,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("bank_transfer");
 
-  async function run(action: () => Promise<unknown>, success: string) {
+  async function run(action: () => Promise<unknown>, success: string): Promise<boolean> {
     setBusy(true);
     setToast(null);
     try {
@@ -33,8 +34,10 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
       setToast({ tone: "success", message: success });
       reload();
       payments.reload();
+      return true;
     } catch (cause) {
       setToast({ tone: "danger", message: cause instanceof ApiError ? cause.message : "Action failed" });
+      return false;
     } finally {
       setBusy(false);
     }
@@ -42,11 +45,32 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 
   async function recordPayment(event: React.FormEvent) {
     event.preventDefault();
-    await run(
-      () => api("/payments", { method: "POST", body: { invoiceId: id, amount: String(parseFloat(amount) || 0), method, receivedAt: new Date().toISOString().slice(0, 10) } }),
-      "Payment recorded."
+    if (!invoice) return;
+
+    const value = Number(amount);
+    const amountMinor = Math.round(value * 100);
+    if (!Number.isFinite(value) || amountMinor <= 0) {
+      setToast({ tone: "danger", message: "Enter a payment amount greater than zero." });
+      return;
+    }
+    if (amountMinor > invoice.balanceMinor) {
+      setToast({ tone: "danger", message: "Payment cannot exceed the remaining balance." });
+      return;
+    }
+
+    const recorded = await run(
+      () => api("/payments", {
+        method: "POST",
+        body: {
+          invoiceId: id,
+          amount: value.toFixed(2),
+          method,
+          receivedAt: new Date().toISOString().slice(0, 10),
+        },
+      }),
+      "Payment recorded and applied."
     );
-    setAmount("");
+    if (recorded) setAmount("");
   }
 
   if (loading && !invoice) return <InvoiceDetailSkeleton />;
@@ -60,6 +84,11 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     paid: "success",
     overdue: "danger",
     void: "danger",
+  };
+  const paymentTone: Record<Payment["verificationStatus"], "success" | "warning" | "danger"> = {
+    verified: "success",
+    pending: "warning",
+    rejected: "danger",
   };
 
   return (
@@ -155,7 +184,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
 
           {/* Record Payment or Payment Records */}
           <div style={{ display: 'grid', gap: '1.5rem' }}>
-            {invoice.status !== "draft" && invoice.balanceMinor > 0 && (
+            {!["draft", "void"].includes(invoice.status) && invoice.balanceMinor > 0 && (
               <form onSubmit={recordPayment} className="panel" style={{ background: '#ffffff', padding: '1.8rem 2rem', borderRadius: '1.25rem', border: '1px solid rgba(20,20,20,0.1)' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', fontFamily: 'var(--vx-font-display)' }}>
                   Record Payment
@@ -163,20 +192,34 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
                   <label className="field">
                     <span>Amount ({invoice.currency}) *</span>
-                    <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required inputMode="decimal" />
+                    <input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      required
+                      min="0.01"
+                      max={fromMinor(invoice.balanceMinor, invoice.currency)}
+                      step="0.01"
+                    />
+                    <small style={{ color: 'var(--vx-muted)', fontSize: '0.76rem' }}>
+                      Remaining: {money(invoice.balanceMinor, invoice.currency)}
+                    </small>
                   </label>
 
                   <label className="field">
                     <span>Payment Method</span>
                     <select value={method} onChange={(e) => setMethod(e.target.value)}>
-                      <option value="bank_transfer">Bank Transfer</option>
-                      <option value="cash">Cash</option>
-                      <option value="card">Card</option>
+                      {PAYMENT_METHODS.map((value) => (
+                        <option key={value} value={value}>
+                          {PAYMENT_METHOD_LABELS[value]}
+                        </option>
+                      ))}
                     </select>
                   </label>
                 </div>
                 <Button type="submit" className="vx-button vx-button--primary vx-button--md" style={{ marginTop: '1.5rem' }} loading={busy}>
-                  Submit Payment
+                  Record Payment
                 </Button>
               </form>
             )}
@@ -192,12 +235,32 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
               ) : (
                 <div style={{ display: 'grid', gap: '0.8rem' }}>
                   {payments.data.map((p) => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid rgba(20,20,20,0.06)' }}>
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', padding: '0.75rem 0', borderBottom: '1px solid rgba(20,20,20,0.06)' }}>
                       <div>
                         <strong style={{ fontSize: '0.95rem' }}>{money(p.amountMinor, p.currency)}</strong>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--vx-muted)' }}>{p.number} · {p.method.replace('_', ' ')}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--vx-muted)' }}>
+                          {p.number} · {p.method.replace(/_/g, ' ')} · {date(p.receivedAt)}
+                          {p.reference ? ` · ${p.reference}` : ''}
+                        </div>
                       </div>
-                      <span className="vx-badge vx-badge--success">{p.verificationStatus}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+                        <span className={`vx-badge vx-badge--${paymentTone[p.verificationStatus] ?? 'info'}`}>
+                          {titleCase(p.verificationStatus)}
+                        </span>
+                        {p.verificationStatus === 'pending' && (
+                          <Button
+                            type="button"
+                            className="vx-button vx-button--secondary vx-button--sm"
+                            onClick={() => run(
+                              () => api(`/payments/${p.id}/verify`, { method: 'POST' }),
+                              'Payment verified and applied.'
+                            )}
+                            loading={busy}
+                          >
+                            Verify
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

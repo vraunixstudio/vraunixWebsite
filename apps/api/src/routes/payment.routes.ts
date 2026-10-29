@@ -24,7 +24,7 @@ paymentRouter.get("/", async (req, res) => {
 paymentRouter.post("/", async (req, res) => {
   const actor = actorFrom(req);
   const input = parseInput(paymentCreateSchema, req.body ?? {});
-  sendData(res, await recordPayment({ ...input, amount: Math.round(Number(input.amount) * 100) } as any, actor, req), 201);
+  sendData(res, await recordPayment(input, actor, req), 201);
 });
 
 paymentRouter.post("/:id/verify", async (req, res) => {
