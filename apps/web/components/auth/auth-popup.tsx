@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
+import type { SessionUser } from "@vraunix/shared";
 import { LoginForm } from "@/components/auth/login-form";
 import { Icon } from "@/components/icons";
 
@@ -11,15 +13,30 @@ import { Icon } from "@/components/icons";
  * a seamless, on-page authentication experience without navigating to
  * a dedicated auth route.
  */
-export default function AuthPopup() {
+export default function AuthPopup({ user = null }: { user?: SessionUser | null }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("auth") === "login") {
-      setOpen(true);
+    const authRequested =
+      new URLSearchParams(window.location.search).get("auth") === "login";
+
+    if (user) {
+      if (authRequested) router.replace("/dashboard");
+      return;
     }
-  }, []);
+
+    if (authRequested) setOpen(true);
+  }, [router, user]);
+
+  function openAccount() {
+    if (user) {
+      router.push("/dashboard");
+      return;
+    }
+    setOpen(true);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -58,8 +75,8 @@ export default function AuthPopup() {
           transition: 'all 0.2s ease',
           marginRight: '0.75rem'
         }}
-        onClick={() => setOpen(true)}
-        aria-label="Sign in"
+        onClick={openAccount}
+        aria-label={user ? "Open dashboard" : "Sign in"}
       >
         <Icon name="users" size={18} />
       </button>

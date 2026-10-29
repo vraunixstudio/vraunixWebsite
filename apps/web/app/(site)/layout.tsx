@@ -6,15 +6,19 @@ import { SiteFooter } from "@/components/site/site-footer";
 import { BackToTop } from "@/components/site/back-to-top";
 import { SiteLayoutSkeleton } from "@/components/site/site-layout-skeleton";
 import { getPublicSettings } from "@/lib/public";
+import { getServerSession } from "@/lib/session";
 
 export default async function SiteLayout({ children }: { children: ReactNode }) {
-  const settings = await getPublicSettings();
+  const [settings, session] = await Promise.all([
+    getPublicSettings(),
+    getServerSession(),
+  ]);
   return (
     <ThemeProvider>
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <SiteHeader />
+      <SiteHeader user={session?.user ?? null} />
       <main id="main-content">
         <Suspense fallback={<SiteLayoutSkeleton />}>
           {children}
