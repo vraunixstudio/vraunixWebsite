@@ -8,8 +8,9 @@ import { useApiResource } from "@/lib/use-api";
 import { date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
+import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { ClientDetailSkeleton } from "@/components/dashboard/page-skeletons";
 
 export default function ClientDetailPage({
   params,
@@ -67,7 +68,7 @@ export default function ClientDetailPage({
     }
   }
 
-  if (loading && !client) return <Spinner label="Loading client details" />;
+  if (loading && !client) return <ClientDetailSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!client) return <EmptyState icon="building" title="Client not found" />;
 

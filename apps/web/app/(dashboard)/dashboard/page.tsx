@@ -24,9 +24,9 @@ import { useApiResource } from "@/lib/use-api";
 import { date, initials, money, titleCase } from "@/lib/format";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { StatusBadge } from "@/components/dashboard/status-badge";
-import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
+import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
-import DashboardOverviewLoading from "./loading";
+import { DashboardOverviewSkeleton } from "@/components/dashboard/page-skeletons";
 
 const chartColors = [
   "#141414",
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const { data, loading, error, reload } =
     useApiResource<DashboardOverview>("/overview");
 
-  if (loading && !data) return <DashboardOverviewLoading />;
+  if (loading && !data) return <DashboardOverviewSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
 
   if (!data) return null;

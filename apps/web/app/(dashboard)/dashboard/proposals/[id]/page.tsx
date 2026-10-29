@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Proposal, Client, Settings } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
@@ -9,13 +8,13 @@ import { money, date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/dashboard/modal";
 import { Toast } from "@/components/dashboard/feedback";
-import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
+import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { ProposalDetailSkeleton } from "@/components/dashboard/page-skeletons";
 import { DEFAULT_PROPOSAL_ABOUT_TEMPLATE, PROPOSAL_TEMPLATES } from "@vraunix/shared";
 
 export default function ProposalDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data: proposal, loading, error, reload } = useApiResource<Proposal>(`/proposals/${id}`);
   const { data: client } = useApiResource<Client>(proposal ? `/clients/${proposal.clientId}` : null);
   const settings = useApiResource<Settings>("/settings");
@@ -87,7 +86,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
     }
   }
 
-  if (loading && !proposal) return <Spinner label="Loading proposal" />;
+  if (loading && !proposal) return <ProposalDetailSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!proposal) return <EmptyState icon="file" title="Proposal not found" />;
 

@@ -8,8 +8,9 @@ import { useApiResource } from "@/lib/use-api";
 import { date, money } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
+import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { ProjectDetailSkeleton } from "@/components/dashboard/page-skeletons";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -54,7 +55,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
-  if (loading && !project) return <Spinner label="Loading project track" />;
+  if (loading && !project) return <ProjectDetailSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!project) return <EmptyState icon="briefcase" title="Project not found" />;
 

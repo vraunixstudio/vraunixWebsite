@@ -9,7 +9,6 @@ import { Icon, type IconName } from "@/components/icons";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { api, resetCsrf } from "@/lib/api";
-import { titleCase } from "@/lib/format";
 
 type NavItem = {
   label: string;

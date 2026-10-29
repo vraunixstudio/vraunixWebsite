@@ -1,19 +1,21 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Invoice, Payment, Client } from "@/lib/types";
 import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { money, date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { EmptyState, ErrorState, Spinner } from "@/components/ui/states";
+import { EmptyState, ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import {
+  InvoiceDetailSkeleton,
+  InvoicePaymentsSkeleton,
+} from "@/components/dashboard/page-skeletons";
 
 export default function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data: invoice, loading, error, reload } = useApiResource<Invoice>(`/invoices/${id}`);
   const { data: client } = useApiResource<Client>(invoice ? `/clients/${invoice.clientId}` : null);
   const payments = useApiResource<Payment[]>(`/payments?invoiceId=${id}`);
@@ -47,7 +49,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
     setAmount("");
   }
 
-  if (loading && !invoice) return <Spinner label="Loading invoice" />;
+  if (loading && !invoice) return <InvoiceDetailSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!invoice) return <EmptyState icon="receipt" title="Invoice not found" />;
 
@@ -184,7 +186,7 @@ export default function InvoiceDetailPage({ params }: { params: Promise<{ id: st
                 Payment History
               </h3>
               {payments.loading ? (
-                <Spinner label="Loading payments" />
+                <InvoicePaymentsSkeleton />
               ) : !payments.data || payments.data.length === 0 ? (
                 <p style={{ color: 'var(--vx-muted)', fontSize: '0.9rem' }}>No payments recorded yet.</p>
               ) : (

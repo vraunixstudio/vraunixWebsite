@@ -1,49 +1,23 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import type { AuditLog } from "@/lib/types";
 import { useApiResource, useDebouncedValue } from "@/lib/use-api";
 import { date } from "@/lib/format";
 import { SearchBox } from "@/components/dashboard/search";
 import { Pagination } from "@/components/dashboard/pagination";
 import { EmptyState, ErrorState } from "@/components/ui/states";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Icon } from "@/components/icons";
+import { AuditLogPageSkeleton } from "@/components/dashboard/page-skeletons";
 
 export default function AuditLogPage() {
   return (
-    <Suspense fallback={<AuditLoading />}>
+    <Suspense fallback={<AuditLogPageSkeleton />}>
       <AuditLogDirectory />
     </Suspense>
   );
 }
 
-function AuditLoading() {
-  return (
-    <div className="dashboard-page" style={{ width: '100%' }}>
-      <div className="toolbar" style={{ marginBottom: '1.5rem', display: 'flex' }}>
-        <Skeleton style={{ height: '44px', width: '300px', borderRadius: '99px' }} />
-      </div>
-      <div className="panel" style={{ background: '#fff', borderRadius: '1.25rem', border: '1px solid rgba(20,20,20,0.1)', padding: '1rem' }}>
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
-          {[...Array(9)].map((_, i) => (
-            <div key={i} style={{ display: 'flex', gap: '1rem', padding: '1rem' }}>
-              <Skeleton style={{ height: '20px', flex: 1 }} />
-              <Skeleton style={{ height: '20px', width: '100px' }} />
-              <Skeleton style={{ height: '20px', width: '150px' }} />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function AuditLogDirectory() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const debounced = useDebouncedValue(search);
@@ -57,7 +31,7 @@ function AuditLogDirectory() {
     `/audit-logs?${queryParams.toString()}`
   );
 
-  if (loading && !data) return <AuditLoading />;
+  if (loading && !data) return <AuditLogPageSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
 
   const hasLogs = data && data.length > 0;

@@ -6,8 +6,9 @@ import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { ErrorState, Spinner } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { SettingsPageSkeleton } from "@/components/dashboard/page-skeletons";
 import { DEFAULT_PROPOSAL_ABOUT_TEMPLATE, PROPOSAL_TEMPLATES } from "@vraunix/shared";
 
 export default function SettingsPage() {
@@ -51,7 +52,7 @@ export default function SettingsPage() {
     setToast({ tone: "success", message: "Template preset loaded into Proposal About field. Click Save below to apply." });
   }
 
-  if (loading && !settings) return <Spinner label="Loading settings" />;
+  if (loading && !settings) return <SettingsPageSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
 
   return (

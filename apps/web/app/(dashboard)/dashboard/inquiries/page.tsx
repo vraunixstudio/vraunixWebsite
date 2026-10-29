@@ -9,36 +9,14 @@ import { date } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
 import { EmptyState, ErrorState } from "@/components/ui/states";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/components/icons";
+import { InquiriesPageSkeleton } from "@/components/dashboard/page-skeletons";
 
 export default function InquiriesPage() {
   return (
-    <Suspense fallback={<InquiriesLoading />}>
+    <Suspense fallback={<InquiriesPageSkeleton />}>
       <InquiriesDirectory />
     </Suspense>
-  );
-}
-
-function InquiriesLoading() {
-  return (
-    <div className="dashboard-page" style={{ width: '100%' }}>
-      <div className="clients-directory" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="panel" style={{ background: '#fff', border: '1px solid rgba(20,20,20,0.1)', borderRadius: '1.25rem', padding: '1.5rem' }}>
-            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <Skeleton style={{ height: '40px', width: '40px', borderRadius: '50%' }} />
-              <div style={{ flex: 1 }}>
-                <Skeleton style={{ height: '18px', width: '60%', marginBottom: '0.25rem' }} />
-                <Skeleton style={{ height: '14px', width: '40%' }} />
-              </div>
-            </div>
-            <Skeleton style={{ height: '40px', width: '100%', marginBottom: '1rem' }} />
-            <Skeleton style={{ height: '36px', width: '120px', borderRadius: '99px' }} />
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -60,7 +38,7 @@ function InquiriesDirectory() {
     }
   }
 
-  if (loading && !data) return <InquiriesLoading />;
+  if (loading && !data) return <InquiriesPageSkeleton />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data || data.length === 0) return <EmptyState icon="target" title="No inquiries yet" description="New submissions will appear here." />;
 

@@ -4960,3 +4960,198 @@ button:active {
     max-width: 34rem;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Route skeleton: public site
+   -------------------------------------------------------------------------- */
+.site-page-skeleton {
+  pointer-events: none;
+}
+
+.site-skeleton-hero-title {
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 2rem 0 1.5rem;
+}
+
+.site-skeleton-summary {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 36rem;
+  margin: 4rem 0 2rem;
+}
+
+.site-skeleton-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.site-skeleton-metrics {
+  gap: clamp(1rem, 3vw, 2.5rem);
+}
+
+.site-skeleton-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.site-skeleton-hero-media {
+  display: block;
+  width: 100%;
+  min-height: clamp(14rem, 30vw, 24rem);
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+}
+
+@supports (aspect-ratio: 16 / 9) {
+  .site-skeleton-hero-media {
+    min-height: 0;
+  }
+}
+
+/* Keep legal placeholders flat; real legal cards use a soft elevation. */
+.site-page-skeleton .studio-legal__summary-card,
+.site-page-skeleton .studio-legal__sidebar-card,
+.site-page-skeleton .studio-legal__tabs,
+.site-page-skeleton .studio-legal__tab.is-active {
+  box-shadow: none;
+}
+
+.site-skeleton-heading {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.site-skeleton-copy {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.site-skeleton-statement {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  align-items: start;
+  gap: clamp(2rem, 5vw, 5rem);
+  margin-top: 3rem;
+}
+
+.site-skeleton-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.site-skeleton-service-list {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid rgba(20, 20, 20, 0.12);
+}
+
+.site-skeleton-service-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid rgba(20, 20, 20, 0.1);
+}
+
+.site-skeleton-process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.site-skeleton-process-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(20, 20, 20, 0.08);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.site-skeleton-process-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.site-skeleton-launch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 3rem;
+  width: 100%;
+}
+
+.site-skeleton-legal-title {
+  margin-bottom: 1.25rem;
+}
+
+.site-skeleton-legal-subtitle {
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 0 2.5rem;
+}
+
+.site-page-skeleton .studio-legal__summary-list li {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.site-page-skeleton .studio-legal__toc-link {
+  pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+  .site-skeleton-process-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 960px) {
+  .site-skeleton-statement {
+    grid-template-columns: 1fr;
+  }
+
+  .site-skeleton-section-head {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-skeleton-service-row {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: 1rem;
+    padding: 1.35rem 0;
+  }
+
+  .site-skeleton-launch {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .site-skeleton-process-grid {
+    grid-template-columns: 1fr;
+  }
+}

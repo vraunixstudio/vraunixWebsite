@@ -347,6 +347,10 @@ export function StartProjectModal({ open, onClose }: StartProjectModalProps) {
                         <span style={{ color: '#000', fontWeight: 700 }}>Company (Optional)</span>
                         <input value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="Studio Name" style={{ height: '48px', fontSize: '0.9rem', border: '1.5px solid #000', borderRadius: '0.75rem', padding: '0 1rem', background: '#fff' }} />
                       </div>
+                      <div className="field">
+                        <span style={{ color: '#000', fontWeight: 700 }}>Phone (Optional)</span>
+                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" style={{ height: '48px', fontSize: '0.9rem', border: '1.5px solid #000', borderRadius: '0.75rem', padding: '0 1rem', background: '#fff' }} />
+                      </div>
                     </div>
 
                     <label style={{ display: 'flex', gap: '0.75rem', cursor: 'pointer', alignItems: 'flex-start' }}>

@@ -1,15 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon, type IconName } from "@/components/icons";
 
-export function Spinner({ label = "Loading" }: { label?: string }) {
-  return (
-    <div className="vx-loading" role="status">
-      <span className="vx-spinner" aria-hidden="true" />
-      <span>{label}</span>
-    </div>
-  );
-}
-
 export function EmptyState({
   icon = "sparkles",
   title,

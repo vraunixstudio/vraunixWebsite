@@ -8,8 +8,9 @@ import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { ErrorState, Spinner } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { NewProjectPageSkeleton } from "@/components/dashboard/page-skeletons";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function NewProjectPage() {
     }
   }
 
-  if (clients.loading && !clients.data) return <Spinner label="Loading clients" />;
+  if (clients.loading && !clients.data) return <NewProjectPageSkeleton />;
   if (clients.error) return <ErrorState message={clients.error} />;
 
   return (

@@ -8,8 +8,15 @@ import { api, ApiError } from "@/lib/api";
 import { useApiResource } from "@/lib/use-api";
 import { Button } from "@/components/ui/button";
 import { Toast } from "@/components/dashboard/feedback";
-import { ErrorState, Spinner } from "@/components/ui/states";
+import { ErrorState } from "@/components/ui/states";
 import { Icon } from "@/components/icons";
+import { NewInvoicePageSkeleton } from "@/components/dashboard/page-skeletons";
+
+type LineItem = {
+  description: string;
+  quantity: string;
+  unitPrice: string;
+};
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -17,10 +24,10 @@ export default function NewInvoicePage() {
   const clients = useApiResource<Client[]>("/clients?limit=100");
 
   const [clientId, setClientId] = useState(searchParams.get("clientId") ?? "");
-  const [projectId, setProjectId] = useState(searchParams.get("projectId") ?? "");
+  const projectId = searchParams.get("projectId") ?? "";
   const [currency, setCurrency] = useState<string>(DEFAULT_CURRENCY);
   const [dueDate, setDueDate] = useState("");
-  const [lineItems, setLineItems] = useState<any[]>([{ description: "", quantity: "1", unitPrice: "" }]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([{ description: "", quantity: "1", unitPrice: "" }]);
   const [taxRate, setTaxRate] = useState("0");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -36,10 +43,15 @@ export default function NewInvoicePage() {
     }
   }
 
-  function updateLineItem(index: number, field: string, value: string) {
-    const updated = [...lineItems];
-    updated[index] = { ...updated[index], [field]: value };
-    setLineItems(updated);
+  function updateLineItem(index: number, field: keyof LineItem, value: string) {
+    setLineItems((items) =>
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        const next: LineItem = { ...item };
+        next[field] = value;
+        return next;
+      })
+    );
   }
 
   async function submit(event: React.FormEvent) {
@@ -55,7 +67,7 @@ export default function NewInvoicePage() {
           currency,
           issueDate: new Date().toISOString().slice(0, 10),
           dueDate,
-          lineItems: lineItems.map((item: any) => ({
+          lineItems: lineItems.map((item) => ({
             description: item.description || "",
             quantity: item.quantity || "1",
             unitPrice: item.unitPrice || "0",
@@ -71,7 +83,7 @@ export default function NewInvoicePage() {
     }
   }
 
-  if (clients.loading && !clients.data) return <Spinner label="Loading clients" />;
+  if (clients.loading && !clients.data) return <NewInvoicePageSkeleton />;
   if (clients.error) return <ErrorState message={clients.error} />;
 
   return (

@@ -281,20 +281,77 @@ body {
   color: var(--vx-accent-text);
 }
 
-.vx-loading {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--vx-muted);
+.vx-skeleton {
+  --vx-skeleton-base: rgba(20, 20, 20, 0.065);
+  --vx-skeleton-sheen: rgba(255, 255, 255, 0.58);
+
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background-color: var(--vx-skeleton-base);
+  box-shadow: none;
+  isolation: isolate;
+  contain: paint;
 }
 
-.vx-spinner {
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 50%;
-  border: 2px solid var(--vx-border-color-strong);
-  border-top-color: var(--vx-accent);
-  animation: spin 0.7s linear infinite;
+.vx-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--vx-skeleton-sheen) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: vx-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes vx-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/*
+ * Graceful degradation: reduced motion, low-power devices, reduced data,
+ * high-contrast preferences, and forced-colors modes keep the placeholder
+ * visible but stop the decorative sheen.
+ */
+@media (prefers-reduced-motion: reduce), (update: slow), (prefers-reduced-data: reduce) {
+  .vx-skeleton::after {
+    animation: none;
+    background: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .vx-skeleton {
+    --vx-skeleton-base: rgba(20, 20, 20, 0.18);
+  }
+
+  .vx-skeleton::after {
+    animation: none;
+    background: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .vx-skeleton {
+    forced-color-adjust: none;
+    background-color: GrayText;
+  }
+
+  .vx-skeleton::after {
+    display: none;
+  }
+}
+
+@media print {
+  .vx-skeleton::after {
+    display: none;
+  }
 }
 
 .vx-toast {
@@ -2642,10 +2699,58 @@ select:disabled {
   }
 }
 
-.route-loading {
-  min-height: 40vh;
+.route-skeleton {
+  min-height: 100vh;
+  padding-block: clamp(2.5rem, 6vw, 5rem);
+  background: var(--vx-color-paper, #f3f3f0);
+}
+
+.route-skeleton__inner {
   display: grid;
-  place-items: center;
+  gap: 1rem;
+}
+
+.route-skeleton__kicker {
+  width: 10rem;
+  height: 0.65rem;
+}
+
+.route-skeleton__title {
+  width: min(38rem, 82%);
+  height: clamp(2.4rem, 6vw, 4.8rem);
+  border-radius: 0.7rem;
+}
+
+.route-skeleton__title--short {
+  width: min(26rem, 58%);
+}
+
+.route-skeleton__copy {
+  width: min(40rem, 90%);
+  height: 0.8rem;
+  margin-block: 0.5rem 1rem;
+}
+
+.route-skeleton__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.route-skeleton__panel {
+  height: 13rem;
+  border-radius: 1.25rem;
+}
+
+@media (max-width: 800px) {
+  .route-skeleton__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .route-skeleton__panel {
+    height: 9rem;
+  }
 }
 
 /* Wizard */
